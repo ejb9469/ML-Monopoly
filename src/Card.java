@@ -1,3 +1,7 @@
+/**
+ * Class representing a Chance or Community Chest card.
+ * TODO: Determine how to handle per-card functionality.
+ */
 public abstract class Card {
 
     protected String name;
@@ -11,8 +15,6 @@ public abstract class Card {
     public Card(String name) {
         this(name, "");
     }
-
-    abstract void doAction();
 
     public String getName() {
         return this.name;

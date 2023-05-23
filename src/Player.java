@@ -18,6 +18,7 @@
 
 
 import java.util.Calendar;
+import java.util.Set;
 import java.util.UUID;
 
 public class Player implements OutputsWarnings {
@@ -26,7 +27,8 @@ public class Player implements OutputsWarnings {
 
     private String name;
     private int id = ID_INCREMENT++;
-    private UUID uuid;
+
+    private final UUID uuid;
 
     protected Communicator communicator;
 
@@ -38,10 +40,12 @@ public class Player implements OutputsWarnings {
 
     /**
      * Entry method for the Game object to signal a Player object to take its turn.
+     * @param legalActions Set of GameActions considered legal by the caller.
+     * @param uuid Player's UUID key, supplied here to ensure only the Game object can apply the signal.
      */
-    public void signalTurn(UUID uuid) {  // TODO: Deep learning stuff goes here
+    public void signalTurn(Set<GameAction> legalActions, UUID uuid) {  // TODO: Deep learning stuff goes here, requested via the Communicator.
 
-        // Handle (bad) authentication
+        // Reject bad authentication
         if (!uuid.equals(this.uuid)) {
             warn(3);
             return;
@@ -58,17 +62,19 @@ public class Player implements OutputsWarnings {
     /**
      * Request the Game object to perform several actions.
      * <p>
-     * As with the private methods, this can be called without any input from the Game object,
-     * ... but the Game object will reject actions taken not on the Player's turn.
+     * As with the private methods, this is called without any input from the Game object,
+     * ... but the Game object will usually reject actions taken not on the Player's turn.
      * @param gameActions Array of GameActions to perform.
-     * @param wrapper GameObject (wrapper object) containing function parameters.
-     * @param async Denotes call on another Player's turn. Most commonly used for trade management.
+     * @param wrappers Array of GameObjects (wrappers) containing GameActions' corresponding function parameters.
+     * @param async Denotes call on another Player's turn. Used in situations like trade management and inability to pay rent.
      */
-    private void takeTurn(GameAction[] gameActions, GameObject wrapper, boolean async) {
-        //fieldsLocked = true;
+    private void takeTurn(GameAction[] gameActions, GameObject[] wrappers, boolean async) {
+        //fieldsLocked = true;  // Race conditions?
         if (gameStateCopy.turnIndicator != id && !async)
             warn(1);
-        for (GameAction gameAction : gameActions) {
+        for (int i = 0; i < gameActions.length; i++) {
+            GameAction gameAction = gameActions[i];
+            GameObject wrapper = wrappers[i];
             switch (gameAction) {
                 case MOVE_THROW_DICE -> throwMoveDice();
                 case TRADE_OFFER -> offerTrade(wrapper.objPlayer, wrapper.objTrade);

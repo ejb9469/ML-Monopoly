@@ -20,8 +20,15 @@ public class Game implements OutputsWarnings {
     private final Board board;
     private final Communicator communicator;
 
-    // Constructs a new Game
+    /**
+     * Constructs a Game given a pre-existing Communicator object.
+     * @param numPlayers Number of players.
+     * @param names Names of each player.
+     * @param communicator Pre-existing Communicator object.
+     */
     public Game(int numPlayers, String[] names, Communicator communicator) {
+        if (communicator == null)
+            communicator = new DebugPipe(this);
         this.communicator = communicator;
         this.board = new Board(this);
 
@@ -45,10 +52,23 @@ public class Game implements OutputsWarnings {
     }
 
     /**
-     * Request the Game perform an action.
-     * @param action The action to perform.
+     * Constructs a Game with a new Communicator object (DebugPipe).
+     * Note: DebugPipe creation logic handled in big constructor.
+     */
+    public Game(int numPlayers, String[] names) {
+        this(numPlayers, names, null);
+    }
+
+    /**
+     * Request the Game object perform an action.
+     * Called via the Communicator.
+     * @param action GameAction to perform.
+     * @param key Secret UUID key of requesting Player.
+     * @param wrapper GameObject wrapper for necessary action data.
+     * @param depth Recursion depth.
      */
     public void requestAction(GameAction action, UUID key, GameObject wrapper, int depth) {
+        if (depth == 0) return;
         int keyIndex = keyExists(key);
         if (keyIndex == -1) {
             warn(1);
@@ -64,10 +84,21 @@ public class Game implements OutputsWarnings {
             }
         }
     }
+
+    /**
+     * Request the Game object perform an action, but DISALLOW RECURSION.
+     */
     public void requestAction(GameAction action, UUID key, GameObject wrapper) {
-        requestAction(action, key, wrapper, 0);
+        requestAction(action, key, wrapper, 1);
     }
 
+    /**
+     * Move a Player's position forwards.
+     * The direction *must* be forwards to handle cards, GO, etc.
+     * Should NOT be called when the Player is in Jail.
+     * @param playerIndex Player index / ID.
+     * @param spaces Number of spaces to move.
+     */
     private void moveTokenForwards(int playerIndex, int spaces) {
 
         int currentLocation = gameState.playerLocations[playerIndex];
@@ -97,7 +128,7 @@ public class Game implements OutputsWarnings {
                 case "Go To Jail" -> {
                     jailPlayer(playerIndex, board.indexOf("Jail"));
                 }
-                case "Free Parking" -> {}  // Do nothing
+                case "Free Parking" -> {}  // Do nothing. Too bad!
             }
         }
 
@@ -123,25 +154,52 @@ public class Game implements OutputsWarnings {
         gameState.turnIndicator = (gameState.turnIndicator + 1) % players.length;
     }
 
-
-    // TODO: Handle negative balances
+    ////////////////////////////////////////
     // TODO: Handle race conditions
-    private void incrementCash(int playerIndex, int amount) {
-        gameState.cash[playerIndex] += amount;
-    }
 
+    /**
+     * Transfer rent funds from Player A to Player B.
+     * @param property Property landed on.
+     * @param victimIndex Index / ID of Player A (lander).
+     * @param renterIndex Index / ID of Player B (renter).
+     */
     private void payRent(Property property, int victimIndex, int renterIndex) {
         int rentCost = property.calculateRent();
         incrementCash(victimIndex, -rentCost);
         incrementCash(renterIndex, rentCost);
     }
 
+    /**
+     * Increment Player's cash by a given amount.
+     * This amount can be negative, but this will be handled by a sub-function decrementCash().
+     * TODO: Handle negative balances
+     * @param playerIndex Player index / ID.
+     * @param amount Amount of cash to give / remove from the Player.
+     */
+    private void incrementCash(int playerIndex, int amount) {
+        gameState.cash[playerIndex] += amount;
+    }
 
+    /**
+     * Send Player to Jail.
+     * @param playerIndex Player index / ID.
+     * @param jailIndex Board position of the Jail space.
+     */
     private void jailPlayer(int playerIndex, int jailIndex) {
         gameState.jailedPlayers[playerIndex] = true;
         gameState.playerLocations[playerIndex] = jailIndex;
     }
 
+    ////////////////////////////////////////
+
+    /**
+     * @param execFlowCode Indicator of when in the game logic the function is called.
+     * @return An array of legal actions for a given point in execution.
+     */
+    private GameAction[] generateLegalActions(int execFlowCode) {
+        // TODO!!
+        return GameAction.values();
+    }
 
     private int keyExists(UUID key) {
         for (int i = 0; i < playerUUIDs.length; i++) {
@@ -150,6 +208,8 @@ public class Game implements OutputsWarnings {
         }
         return -1;
     }
+
+    ////////////////////////////////////////
 
 
     // Getters
