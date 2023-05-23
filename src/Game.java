@@ -1,7 +1,4 @@
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Class to handle gameplay loop.
@@ -196,9 +193,9 @@ public class Game implements OutputsWarnings {
      * @param execFlowCode Indicator of when in the game logic the function is called.
      * @return An array of legal actions for a given point in execution.
      */
-    private GameAction[] generateLegalActions(int execFlowCode) {
+    private Set<GameAction> generateLegalActions(int execFlowCode) {
         // TODO!!
-        return GameAction.values();
+        return Set.copyOf(Arrays.asList(GameAction.values()));
     }
 
     private int keyExists(UUID key) {
