@@ -13,6 +13,7 @@ public class GameState {
     public int[] cash;
     public int[] houses;  // '5 houses' will equal a hotel
     public int[] playerLocations;
+    public int[] timesRolled;
     public boolean[] jailedPlayers;
     public int[] gtfoJailCards;
 
@@ -23,13 +24,14 @@ public class GameState {
     public CardStack communityChest;
 
     // Called when constructing a GameState manually.
-    public GameState(int numPlayers, int turnIndicator, int[] ownership, int[] cash, int[] houses, int[] playerLocations, boolean[] jailedPlayers, int[] gtfoJailCards, int remainingHouses, int remainingHotels, CardStack chance, CardStack communityChest) {
+    public GameState(int numPlayers, int turnIndicator, int[] ownership, int[] cash, int[] houses, int[] playerLocations, int[] timesRolled, boolean[] jailedPlayers, int[] gtfoJailCards, int remainingHouses, int remainingHotels, CardStack chance, CardStack communityChest) {
         this.numPlayers = numPlayers;
         this.turnIndicator = turnIndicator;
         this.ownership = ownership;
         this.cash = cash;
         this.houses = houses;
         this.playerLocations = playerLocations;
+        this.timesRolled = timesRolled;
         this.jailedPlayers = jailedPlayers;
         this.gtfoJailCards = gtfoJailCards;
         this.remainingHouses = remainingHouses;
@@ -40,12 +42,12 @@ public class GameState {
 
     // Called when constructing a new / starting GameState.
     public GameState(int numPlayers) {
-        this(numPlayers, 1, new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], 32, 12, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
+        this(numPlayers, 1, new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], 32, 12, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
     }
 
     // Called when cloning a GameState.
     public GameState(GameState original) {
-        this(original.numPlayers, original.turnIndicator, original.ownership, original.cash, original.houses, original.playerLocations, original.jailedPlayers, original.gtfoJailCards, original.remainingHouses, original.remainingHotels, original.chance, original.communityChest);
+        this(original.numPlayers, original.turnIndicator, original.ownership, original.cash, original.houses, original.playerLocations, original.timesRolled, original.jailedPlayers, original.gtfoJailCards, original.remainingHouses, original.remainingHotels, original.chance, original.communityChest);
     }
 
     @Override
@@ -53,7 +55,7 @@ public class GameState {
         if (!(object instanceof GameState))
             return super.equals(object);
         GameState gs = (GameState)object;
-        return (this.turnIndicator == gs.turnIndicator && this.mortgages.equals(gs.mortgages) && this.ownership.equals(gs.ownership) && this.cash.equals(gs.cash) && this.houses.equals(gs.houses) && this.jailedPlayers.equals(gs.jailedPlayers) && this.gtfoJailCards.equals(gs.gtfoJailCards) && this.chance.equals(gs.chance) && this.communityChest.equals(gs.communityChest));
+        return (this.turnIndicator == gs.turnIndicator && this.mortgages.equals(gs.mortgages) && this.ownership.equals(gs.ownership) && this.cash.equals(gs.cash) && this.houses.equals(gs.houses) && this.playerLocations.equals(gs.playerLocations) && this.timesRolled.equals(gs.timesRolled) && this.jailedPlayers.equals(gs.jailedPlayers) && this.gtfoJailCards.equals(gs.gtfoJailCards) && this.chance.equals(gs.chance) && this.communityChest.equals(gs.communityChest));
     }
 
 }

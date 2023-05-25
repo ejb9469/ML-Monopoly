@@ -17,9 +17,7 @@
             // Jail-related actions are: throw dice, pay bail, or use card.
 
 
-import java.util.Calendar;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class Player implements OutputsWarnings {
 
@@ -30,7 +28,9 @@ public class Player implements OutputsWarnings {
 
     private final UUID uuid;
 
-    protected Communicator communicator;
+    private Communicator communicator;
+    private Decider decider;  // TODO
+    private OutPipe output;
 
     public Player(Communicator communicator, String name, UUID uuid) {
         this.communicator = communicator;
@@ -40,10 +40,14 @@ public class Player implements OutputsWarnings {
 
     /**
      * Entry method for the Game object to signal a Player object to take its turn.
+     *      TODO: Deep learning stuff goes here, requested via the Communicator.
      * @param legalActions Set of GameActions considered legal by the caller.
      * @param uuid Player's UUID key, supplied here to ensure only the Game object can apply the signal.
+     * @param prompt Prompt displayed to the user.
      */
-    public void signalTurn(Set<GameAction> legalActions, UUID uuid) {  // TODO: Deep learning stuff goes here, requested via the Communicator.
+    public void signalTurn(Set<GameAction> legalActions, UUID uuid, String prompt) {
+
+        if (prompt == null) prompt = "";
 
         // Reject bad authentication
         if (!uuid.equals(this.uuid)) {
@@ -54,9 +58,18 @@ public class Player implements OutputsWarnings {
         // Sync GameState
         syncState();
 
-        // Generate GameAction[] aka actions to take / request
-        // Generate wrapper (containing related values)
-        // async param?
+        // Output prompt
+        output.output(prompt);
+
+        // Black-box decision-making
+        // Also, ugly stinky extraction process
+        boolean canEndTurn = legalActions.contains(GameAction.END_TURN);
+        LinkedHashMap<GameAction, GameObject> actionMap = decider.decide(legalActions, gameStateCopy, this, canEndTurn);
+        GameAction decidedAction = actionMap.keySet().stream().findFirst().get();
+        GameObject wrapper = actionMap.get(decidedAction);
+
+        // async param use case..?
+        takeTurn(new GameAction[]{decidedAction}, new GameObject[]{wrapper}, false);
     }
 
     /**
@@ -96,6 +109,7 @@ public class Player implements OutputsWarnings {
         syncState();
     }
 
+    ////////////////////////////////////////
 
     private void throwMoveDice() {
         GameAction action = GameAction.MOVE_THROW_DICE;
@@ -164,11 +178,12 @@ public class Player implements OutputsWarnings {
         communicator.requestAction(GameAction.END_TURN, uuid, null);
     }
 
+    ////////////////////////////////////////
 
     // Below state variables should be used as *indicators* on if certain actions are valid.
     // These are client-side variables ONLY; here for optimization.
     // The Game object may still reject any request.
-    GameState gameStateCopy = communicator.requestCopyOfGameState();
+    private GameState gameStateCopy = communicator.requestCopyOfGameState();
     private void syncState() {
         gameStateCopy = communicator.requestCopyOfGameState();
     }

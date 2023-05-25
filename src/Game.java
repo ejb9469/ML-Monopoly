@@ -1,18 +1,26 @@
 import java.util.*;
 
+import static java.lang.System.exit;
+
 /**
  * Class to handle gameplay loop.
  */
 public class Game implements OutputsWarnings {
+
+    public static final int MAX_TURNS = 100;
+    public static final String PROMPT_DEFAULT = "What action would you like to perform?";
 
     private static int ID_INCREMENT = 0;
 
     private int id = ID_INCREMENT++;
 
     private GameState gameState;
+    private int currentTurn = 1;
 
     private Player[] players;
     private UUID[] playerUUIDs;
+
+    private Set<GameAction> currentLegalActions = new HashSet<>();
 
     private final Board board;
     private final Communicator communicator;
@@ -56,6 +64,7 @@ public class Game implements OutputsWarnings {
         this(numPlayers, names, null);
     }
 
+
     /**
      * Request the Game object perform an action.
      * Called via the Communicator.
@@ -65,21 +74,98 @@ public class Game implements OutputsWarnings {
      * @param depth Recursion depth.
      */
     public void requestAction(GameAction action, UUID key, GameObject wrapper, int depth) {
+
+        // Recursion base case
         if (depth == 0) return;
+
+        // Check if valid authentication
         int keyIndex = keyExists(key);
         if (keyIndex == -1) {
             warn(1);
             return;
         }
+
+        // Check if legal move. If not, reject it & replace with END_TURN.
+        if (!currentLegalActions.contains(action)) {
+            warn(2);
+            action = GameAction.END_TURN;
+        }
+
         Player player = players[keyIndex];
+        boolean isPlayerTurn = (gameState.turnIndicator == keyIndex);
+        boolean doNotRemoveAction = false;  // Used for e.g. double-dice
+
+        // Handle action
         switch (action) {
+
             case MOVE_THROW_DICE -> {
+
+                // Sanity check the turn status
+                if (!isPlayerTurn) break;
+
+                // Roll dice
                 Dice dice = new Dice();
                 int toss = dice.toss();
+                gameState.timesRolled[keyIndex]++;
+                currentLegalActions.remove(GameAction.MOVE_THROW_DICE);
+
+                // Handle doubles
+                if (dice.doubles) {
+                    if (gameState.timesRolled[keyIndex] >= 3) {
+                        // Three doubles in a row
+                        jailPlayer(keyIndex);
+                        break;  // Do not proceed with the move
+                    } else {
+                        // Less than three doubles in a row
+                        doNotRemoveAction = true;  // Quick, add it back!
+                    }
+                } else if (gameState.timesRolled[keyIndex] > 1) {
+                    // Double moving without double dice. Sad!
+                    break;  // Do not proceed with the move
+                }
+
+                // Move token if passed checks
                 moveTokenForwards(keyIndex, toss);
-                // TODO: doubles
+
+            }
+            case PROPERTY_BUY_OR_AUCTION -> {
+
+                // This action can theoretically be repeated.
+                doNotRemoveAction = true;
+
+                // Perform checks on Player turn and location status
+                if (
+                        !isPlayerTurn
+                        || gameState.playerLocations[keyIndex] != board.getSquares().indexOf(wrapper.objProperty)
+                        || gameState.ownership[board.getSquares().indexOf(wrapper.objProperty)] != 0
+                ) break;
+
+                if (wrapper.objBool && gameState.cash[keyIndex] >= wrapper.objProperty.marketPrice) {
+                    // Remember that having enough cash is a prerequisite to even reach the buyProperty() method.
+                    buyProperty(keyIndex, wrapper.objProperty);
+                } else {
+                    auctionProperty(keyIndex, wrapper.objProperty);
+                }
+
+            }
+            default -> {  // END TURN || Note: this covers 'graceful' turn ends too.
+                endTurn();  // TODO
+                return;  // No more successive actions
             }
         }
+
+        // Remove performed action from set of legal actions.
+        // This branch will execute depending on the type of action and its context.
+        if (!doNotRemoveAction)
+            currentLegalActions.remove(action);
+
+        // Action completed, either end turn or ask for another.
+        if (currentLegalActions.size() == 0 || (currentLegalActions.size() == 1 && currentLegalActions.contains(GameAction.END_TURN))) {
+            requestAction(GameAction.END_TURN, key, null, 1);
+        } else {
+            signalTurn(-1, keyIndex);
+        }
+
     }
 
     /**
@@ -87,6 +173,23 @@ public class Game implements OutputsWarnings {
      */
     public void requestAction(GameAction action, UUID key, GameObject wrapper) {
         requestAction(action, key, wrapper, 1);
+    }
+
+    /**
+     * Handles the process of signaling to a player that it's their turn.
+     * Generates a Set of legal actions to pass to the player, ...
+     *      ... and also updates this.currentLegalActions in the process.
+     * @param execCodeFlow Indicator of when in the game logic the function is called.
+     * @param playerIndex Index / ID of the Player.
+     * @param prompt Output prompt.
+     */
+    private void signalTurn(int execCodeFlow, int playerIndex, String prompt) {
+        Set<GameAction> legalActions = generateLegalActions(execCodeFlow);
+        currentLegalActions = legalActions;
+        players[playerIndex].signalTurn(legalActions, playerUUIDs[playerIndex], prompt);
+    }
+    private void signalTurn(int execCodeFlow, int playerIndex) {
+        signalTurn(execCodeFlow, playerIndex, PROMPT_DEFAULT);
     }
 
     /**
@@ -123,7 +226,7 @@ public class Game implements OutputsWarnings {
                 }
                 case "Jail" -> {}  // Just visiting!
                 case "Go To Jail" -> {
-                    jailPlayer(playerIndex, board.indexOf("Jail"));
+                    jailPlayer(playerIndex);
                 }
                 case "Free Parking" -> {}  // Do nothing. Too bad!
             }
@@ -132,12 +235,13 @@ public class Game implements OutputsWarnings {
         // We're dealing with a rented Property
         else {
 
-            // Property is NOT OWNED
+            // Property is NOT OWNED - buy/auction
             if (gameState.ownership[landingLocation] == 0) {
-                // TODO
+                String prompt = "Buy / auction " + board.getSquares().get(landingLocation).getName();
+                signalTurn(1, playerIndex, prompt);
             }
 
-            // Property is OWNED
+            // Property is OWNED - pay rent
             else {
                 payRent(landingProperty, playerIndex, gameState.ownership[landingLocation]);
             }
@@ -147,12 +251,46 @@ public class Game implements OutputsWarnings {
 
     }
 
+    /**
+     * End the Player's turn and either...
+     * A) End the game if we've reached any end condition.
+     * B) Proceed with the next Player's turn.
+     */
     private void endTurn() {
+        if (gameState.turnIndicator == players.length)
+            currentTurn++;
         gameState.turnIndicator = (gameState.turnIndicator + 1) % players.length;
+        gameState.timesRolled[gameState.turnIndicator] = 0;
+        currentLegalActions = generateLegalActions(0);  // resets to all legal actions
+        if (isGameOver()) {
+            endGame(0);
+        } else {
+            signalTurn(0, gameState.turnIndicator, "It's your turn! " + PROMPT_DEFAULT);
+        }
+    }
+
+    /**
+     * @return True under the following conditions, false otherwise:
+     *              1) If the Game has exceeded the maximum number of turns.
+     *              2) If all other players have left or been eliminated.
+     */
+    private boolean isGameOver() {
+        return (currentTurn > MAX_TURNS || gameState.numPlayers <= 1);
+    }
+
+    /**
+     * Exits the game with a given status code.
+     */
+    private void endGame(int statusCode) {
+        exit(statusCode);
     }
 
     ////////////////////////////////////////
     // TODO: Handle race conditions
+
+    private void buyProperty(int playerIndex, Property property) {};
+
+    private void auctionProperty(int playerIndex, Property property) {};
 
     /**
      * Transfer rent funds from Player A to Player B.
@@ -186,16 +324,32 @@ public class Game implements OutputsWarnings {
         gameState.jailedPlayers[playerIndex] = true;
         gameState.playerLocations[playerIndex] = jailIndex;
     }
+    private void jailPlayer(int playerIndex) {
+        jailPlayer(playerIndex, board.indexOf("Jail"));
+    }
 
     ////////////////////////////////////////
 
     /**
      * @param execFlowCode Indicator of when in the game logic the function is called.
+     *                     Case 0 is used to refill the Set to 'all actions'.
+     *                     Case -1 (or any invalid case) is used to simply return `currentLegalActions`.
      * @return An array of legal actions for a given point in execution.
      */
     private Set<GameAction> generateLegalActions(int execFlowCode) {
-        // TODO!!
-        return Set.copyOf(Arrays.asList(GameAction.values()));
+        Set<GameAction> legalActions = Set.copyOf(currentLegalActions);
+        switch (execFlowCode) {
+            // Case 0 used to refill the Set.
+            case 0 -> legalActions = Set.copyOf(List.of(GameAction.values()));
+            // Case 1 is used for landing on a Property.
+            case 1 -> legalActions = Set.copyOf(List.of(GameAction.PROPERTY_BUY_OR_AUCTION));
+            // TODO: In subsequent cases, nix all invalid actions to avoid pseudo-infinite loops.
+            //  Although the Decider should handle this in theory, it's good to cull certain actions server-side.
+            //  Examples of nix-able actions: trading more than X (20?) times / turn, rejecting trade offers that don't exist, buying a house without the funds, etc.
+            //  ENDED HERE @ 05-25-23 12:45pm EST
+        }
+        //currentLegalActions = legalActions;
+        return legalActions;
     }
 
     private int keyExists(UUID key) {
@@ -208,18 +362,17 @@ public class Game implements OutputsWarnings {
 
     ////////////////////////////////////////
 
-
-    // Getters
-    public Player[] getPlayers() {
-        return players;
-    }
-
     /**
      * @return A *copy* of the Game State object.
      * We turn a copy because GameState is highly mutable.
      */
     public GameState getGameState() {
         return new GameState(gameState);
+    }
+
+    // Getters
+    public Player[] getPlayers() {
+        return players;
     }
 
 

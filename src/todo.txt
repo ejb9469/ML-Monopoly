@@ -1,7 +1,10 @@
-1) Comment everything
-2) Packages & folder structure
+                                    DONE 1) Comment everything
+                                    DLAY 2) Packages & folder structure
                                     DONE 3) Elaborate on Communicator interface
 4) Game logic
-5) Graphics
+                                     MAX 5) Graphics
 
 - Go through To-Do markers
+
+
+- Make better prompt strings
