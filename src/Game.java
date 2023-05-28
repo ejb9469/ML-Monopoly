@@ -1,24 +1,27 @@
 import java.util.*;
 
 import static java.lang.System.exit;
+// ^^ Might not be a great idea to exit this way ^^
 
 /**
- * Class to handle gameplay loop.
+ * Class that represents a game and implements Monopoly gameplay loop.
+ * Player decision-making is NOT handled here.
  */
 public class Game implements OutputsWarnings {
 
     public static final int MAX_TURNS = 100;
+    public static final int MAX_TRADES = 2;  // "per player per turn", currently unused
     public static final String PROMPT_DEFAULT = "What action would you like to perform?";
 
     private static int ID_INCREMENT = 0;
 
-    private int id = ID_INCREMENT++;
+    private final int id = ID_INCREMENT++;
 
-    private GameState gameState;
+    private final GameState gameState;
     private int currentTurn = 1;
 
-    private Player[] players;
-    private UUID[] playerUUIDs;
+    private final Player[] players;
+    private final UUID[] playerUUIDs;
 
     private Set<GameAction> currentLegalActions = new HashSet<>();
 
@@ -91,9 +94,13 @@ public class Game implements OutputsWarnings {
             action = GameAction.END_TURN;
         }
 
-        Player player = players[keyIndex];
         boolean isPlayerTurn = (gameState.turnIndicator == keyIndex);
-        boolean doNotRemoveAction = false;  // Used for e.g. double-dice
+
+        // Used for actions that are allowed multiple times per turn.
+        //      This can be used respective or irrespective of context,
+        //      e.g. Mortgaging and unmortgaging have no theoretical limit,
+        //           but throwing move dice can only be repeated when rolling doubles.
+        boolean doNotRemoveAction = false;
 
         // Handle action
         switch (action) {
@@ -103,11 +110,13 @@ public class Game implements OutputsWarnings {
                 // Sanity check the turn status
                 if (!isPlayerTurn) break;
 
+                // Player cannot roll move dice in jail.
+                if (gameState.jailedPlayers[keyIndex]) break;
+
                 // Roll dice
                 Dice dice = new Dice();
                 int toss = dice.toss();
                 gameState.timesRolled[keyIndex]++;
-                currentLegalActions.remove(GameAction.MOVE_THROW_DICE);
 
                 // Handle doubles
                 if (dice.doubles) {
@@ -128,16 +137,21 @@ public class Game implements OutputsWarnings {
                 moveTokenForwards(keyIndex, toss);
 
             }
+            case TRADE_OFFER -> {}  // Trading implemented later!
+            case TRADE_ACCEPT -> {}  // Trading implemented later!
+            case TRADE_REJECT -> {}  // Trading implemented later!
             case PROPERTY_BUY_OR_AUCTION -> {
 
                 // This action can theoretically be repeated.
                 doNotRemoveAction = true;
 
+                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+
                 // Perform checks on Player turn and location status
                 if (
-                        !isPlayerTurn
-                        || gameState.playerLocations[keyIndex] != board.getSquares().indexOf(wrapper.objProperty)
-                        || gameState.ownership[board.getSquares().indexOf(wrapper.objProperty)] != 0
+                           !isPlayerTurn
+                        || gameState.playerLocations[keyIndex] != propertyIndex  // Player did not land on the Property
+                        || gameState.ownership[propertyIndex] != 0  // Property is already owned
                 ) break;
 
                 if (wrapper.objBool && gameState.cash[keyIndex] >= wrapper.objProperty.marketPrice) {
@@ -148,8 +162,142 @@ public class Game implements OutputsWarnings {
                 }
 
             }
+            case PROPERTY_MORTGAGE -> {
+
+                // This action can theoretically be repeated.
+                doNotRemoveAction = true;
+
+                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+
+                // Perform checks on Player turn, ownership, and mortgage status
+                if (
+                           !isPlayerTurn
+                        || gameState.ownership[propertyIndex] != keyIndex  // Player does not own the Property
+                        || gameState.mortgages[propertyIndex]  // Property is already mortgaged
+                ) break;
+
+                mortgageProperty(wrapper.objProperty);
+
+            }
+            case PROPERTY_UNMORTGAGE -> {
+
+                // This action can theoretically be repeated.
+                doNotRemoveAction = true;
+
+                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+
+                // Perform checks on Player turn, ownership, mortgage, and cash status
+                if (
+                           !isPlayerTurn
+                        || gameState.ownership[propertyIndex] != keyIndex  // Player does not the Property
+                        || !gameState.mortgages[propertyIndex]  // The Property isn't mortgaged
+                        || gameState.cash[keyIndex] < (wrapper.objProperty.marketPrice * wrapper.objProperty.mortgageDivisor * 1.1)  // Player cannot afford to unmortgage
+                                                        // TODO: Make into a constant in Property.java
+                ) break;
+
+                unmortgageProperty(wrapper.objProperty);
+
+            }
+            case AUCTION_BID -> {
+                // TODO: Implement auctions!
+            }
+            case HOUSE_BUILD -> {
+
+                // This action can theoretically be repeated.
+                doNotRemoveAction = true;
+
+                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+
+                boolean isBuyingHotel = (gameState.houses[propertyIndex] == 4);
+
+                // Perform checks on Player turn, ownership, mortgage, houses, and cash status
+                if (
+                           !isPlayerTurn
+                        || gameState.ownership[propertyIndex] != keyIndex  // Player does not own the Property
+                        || gameState.houses[propertyIndex] >= 5  // There is already a hotel on the Property
+                        || (gameState.remainingHouses <= 0 && !isBuyingHotel)  // There are no remaining houses
+                        || (gameState.remainingHotels <= 0 && isBuyingHotel)  // There are no remaining hotels
+                        || gameState.cash[keyIndex] < wrapper.objProperty.baseHouseCost  // Player cannot afford to build a house
+                        || gameState.mortgages[propertyIndex]  // The Property is mortgaged
+                ) break;
+
+                buyHouse(wrapper.objProperty, isBuyingHotel);
+
+            }
+            case HOUSE_SELL -> {
+
+                // This action can theoretically be repeated
+                doNotRemoveAction = true;
+
+                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+
+                boolean isSellingHotel = (gameState.houses[propertyIndex] == 5);
+
+                // Perform checks on Player turn, ownership, mortgage, and houses status
+                if (
+                           !isPlayerTurn
+                        || gameState.ownership[propertyIndex] != keyIndex  // Player does not own the Property
+                        || gameState.houses[propertyIndex] <= 0  // There are no houses to sell
+                        || gameState.mortgages[propertyIndex]  // The Property is mortgaged
+                ) break;
+
+                sellHouse(wrapper.objProperty, isSellingHotel);
+
+            }
+            case JAIL_THROW_DICE -> {
+
+                // Sanity check the turn status
+                if (!isPlayerTurn) break;
+
+                // Player cannot roll jail dice outside of jail
+                if (!gameState.jailedPlayers[keyIndex]) break;
+
+                // Roll dice
+                Dice dice = new Dice();
+                int toss = dice.toss();
+                gameState.timesRolled[keyIndex]++;
+
+                // Handle doubles
+                if (dice.doubles) {
+                    gameState.timesRolled[keyIndex] = 0;
+                    freePlayer(keyIndex, false, false, false);
+                    moveTokenForwards(keyIndex, toss);
+                } else if (gameState.timesRolled[keyIndex] >= 3) {
+                    gameState.timesRolled[keyIndex] = 0;
+                    // Use card or pay bail in that order of preference
+                    boolean hasCard = gameState.gtfoJailCards[keyIndex] < 1;
+                    freePlayer(keyIndex, !hasCard, hasCard, true);
+                }
+
+            }
+            case JAIL_PAY_BAIL -> {
+
+                // Perform checks on Player turn, jail, and cash status.
+                    // Note: we only arrive at this branch if the Player
+                    //       *voluntarily* pays bail, NOT if they are forced to.
+                if (
+                           !isPlayerTurn
+                        || !gameState.jailedPlayers[keyIndex]  // Player is not in jail
+                        || gameState.cash[keyIndex] < Property.BAIL_AMOUNT  // Player does not have enough for bail
+                ) break;
+
+                freePlayer(keyIndex, true, false, false);
+
+            }
+            case JAIL_USE_CARD -> {
+
+                // Perform checks on Player turn, jail, and card status.
+                if (
+                           !isPlayerTurn
+                        || !gameState.jailedPlayers[keyIndex]  // Player is not in jail
+                        || gameState.gtfoJailCards[keyIndex] <= 0  // Player does not have any cards
+                ) break;
+
+                freePlayer(keyIndex, false, true, false);
+
+            }
             default -> {  // END TURN || Note: this covers 'graceful' turn ends too.
-                endTurn();  // TODO
+                endTurn();
                 return;  // No more successive actions
             }
         }
@@ -183,10 +331,13 @@ public class Game implements OutputsWarnings {
      * @param playerIndex Index / ID of the Player.
      * @param prompt Output prompt.
      */
-    private void signalTurn(int execCodeFlow, int playerIndex, String prompt) {
-        Set<GameAction> legalActions = generateLegalActions(execCodeFlow);
+    private void signalTurn(int execCodeFlow, Set<GameAction> nixedActions, int playerIndex, String prompt) {
+        Set<GameAction> legalActions = generateLegalActions(execCodeFlow, nixedActions);
         currentLegalActions = legalActions;
         players[playerIndex].signalTurn(legalActions, playerUUIDs[playerIndex], prompt);
+    }
+    private void signalTurn(int execCodeFlow, int playerIndex, String prompt) {
+        signalTurn(execCodeFlow, new HashSet<>(), playerIndex, prompt);
     }
     private void signalTurn(int execCodeFlow, int playerIndex) {
         signalTurn(execCodeFlow, playerIndex, PROMPT_DEFAULT);
@@ -261,7 +412,7 @@ public class Game implements OutputsWarnings {
             currentTurn++;
         gameState.turnIndicator = (gameState.turnIndicator + 1) % players.length;
         gameState.timesRolled[gameState.turnIndicator] = 0;
-        currentLegalActions = generateLegalActions(0);  // resets to all legal actions
+        currentLegalActions = generateLegalActions(0);  // resets to start-of-turn actions
         if (isGameOver()) {
             endGame(0);
         } else {
@@ -287,10 +438,19 @@ public class Game implements OutputsWarnings {
 
     ////////////////////////////////////////
     // TODO: Handle race conditions
+    // TODO: IMPLEMENTATION!!!
 
     private void buyProperty(int playerIndex, Property property) {};
 
     private void auctionProperty(int playerIndex, Property property) {};
+
+    private void mortgageProperty(Property property) {};
+
+    private void unmortgageProperty(Property property) {};
+
+    private void buyHouse(Property property, boolean hotel) {};
+
+    private void sellHouse(Property property, boolean hotel) {};
 
     /**
      * Transfer rent funds from Player A to Player B.
@@ -328,28 +488,55 @@ public class Game implements OutputsWarnings {
         jailPlayer(playerIndex, board.indexOf("Jail"));
     }
 
+    /**
+     * Free a Player from Jail.
+     * @param playerIndex Player index / ID.
+     * @param bail Using bail vs. bail-less exit.
+     * @param card Using card vs. card-less exit.
+     * @param forced Forced into this decision.
+     */
+    // Note: Both `bail` and `card` are present because of the existence of roll-exits.
+    private void freePlayer(int playerIndex, boolean bail, boolean card, boolean forced) {
+        // TODO
+    }
+
     ////////////////////////////////////////
 
     /**
      * @param execFlowCode Indicator of when in the game logic the function is called.
-     *                     Case 0 is used to refill the Set to 'all actions'.
      *                     Case -1 (or any invalid case) is used to simply return `currentLegalActions`.
+     * @param nixedActions Set of actions specified by the caller to be illegal regardless.
      * @return An array of legal actions for a given point in execution.
      */
-    private Set<GameAction> generateLegalActions(int execFlowCode) {
-        Set<GameAction> legalActions = Set.copyOf(currentLegalActions);
+    private Set<GameAction> generateLegalActions(int execFlowCode, Set<GameAction> nixedActions) {
+
+        Set<GameAction> legalActions;
+
+        // Grab defaults from case code
         switch (execFlowCode) {
-            // Case 0 used to refill the Set.
-            case 0 -> legalActions = Set.copyOf(List.of(GameAction.values()));
+            // Case 0 is used for beginning-of-turn actions. The player must be not in jail.
+            case 0 -> legalActions = new HashSet<>(List.of(GameAction.START_ACTIONS));
             // Case 1 is used for landing on a Property.
-            case 1 -> legalActions = Set.copyOf(List.of(GameAction.PROPERTY_BUY_OR_AUCTION));
-            // TODO: In subsequent cases, nix all invalid actions to avoid pseudo-infinite loops.
-            //  Although the Decider should handle this in theory, it's good to cull certain actions server-side.
-            //  Examples of nix-able actions: trading more than X (20?) times / turn, rejecting trade offers that don't exist, buying a house without the funds, etc.
-            //  ENDED HERE @ 05-25-23 12:45pm EST
+            case 1 -> legalActions = new HashSet<>(List.of(GameAction.PROPERTY_BUY_OR_AUCTION));
+            // Case 2 is used for end-of-turn actions e.g. building houses, mortgaging, trading.
+                // Note for later: do we want TRADE_ACCEPT and TRADE_REJECT included in case 2? Atm I say no.
+            case 2 -> legalActions = new HashSet<>(List.of(GameAction.END_ACTIONS));
+            // Case 3 is used for beginning a turn in jail.
+            case 3 -> legalActions = new HashSet<>(List.of(GameAction.JAIL_ACTIONS));
+            // Default case (e.g. -1) will simply return `currentLegalActions`.
+            default -> legalActions = new HashSet<>(currentLegalActions);
         }
-        //currentLegalActions = legalActions;
+
+        // Cull nixed actions
+        legalActions.removeAll(nixedActions);
+
         return legalActions;
+
+    }
+
+    // Below called when no nix-able actions provided.
+    private Set<GameAction> generateLegalActions(int execFlowCode) {
+        return generateLegalActions(execFlowCode, new HashSet<>());
     }
 
     private int keyExists(UUID key) {

@@ -1,5 +1,7 @@
 public class Property {
 
+    public static final int BAIL_AMOUNT = 50;
+
     protected String name;
 
     protected COLOR_SET color;
