@@ -10,15 +10,20 @@ import static java.lang.System.exit;
 public class Game implements OutputsWarnings {
 
     public static final int MAX_TURNS = 100;
+    public static final int MAX_DEPTH = 20;  // Used in requestAction()
     public static final int MAX_TRADES = 2;  // "per player per turn", currently unused
     public static final String PROMPT_DEFAULT = "What action would you like to perform?";
+
+    private boolean gameOverFlag = false;
+
+    private int depth = 0;
 
     private static int ID_INCREMENT = 0;
 
     private final int id = ID_INCREMENT++;
 
     private final GameState gameState;
-    private int currentTurn = 1;
+    private int currentTurn = 0;
 
     private final Player[] players;
     private final UUID[] playerUUIDs;
@@ -59,14 +64,17 @@ public class Game implements OutputsWarnings {
         this.gameState = new GameState(numPlayers);
     }
 
-    /**
-     * Constructs a Game with a new Communicator object (DebugPipe).
-     * Note: DebugPipe creation logic handled in big constructor.
-     */
-    public Game(int numPlayers, String[] names) {
-        this(numPlayers, names, null);
+    // Debug functions ////////////////////////////////
+    private void gameLoop() {
+        while (!gameOverFlag) {
+            depth = 0;
+            endTurn();
+        }
     }
-
+    public static void main(String[] args) {
+        new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null).gameLoop();
+    }
+    ///////////////////////////////////////////////////
 
     /**
      * Request the Game object perform an action.
@@ -74,12 +82,12 @@ public class Game implements OutputsWarnings {
      * @param action GameAction to perform.
      * @param key Secret UUID key of requesting Player.
      * @param wrapper GameObject wrapper for necessary action data.
-     * @param depth Recursion depth.
      */
-    public void requestAction(GameAction action, UUID key, GameObject wrapper, int depth) {
+    public void requestAction(GameAction action, UUID key, GameObject wrapper) {
 
         // Recursion base case
-        if (depth == 0) return;
+        if (depth == MAX_DEPTH) return;
+        depth++;
 
         // Check if valid authentication
         int keyIndex = keyExists(key);
@@ -297,7 +305,7 @@ public class Game implements OutputsWarnings {
 
             }
             default -> {  // END TURN || Note: this covers 'graceful' turn ends too.
-                endTurn();
+                //endTurn();
                 return;  // No more successive actions
             }
         }
@@ -307,20 +315,13 @@ public class Game implements OutputsWarnings {
         if (!doNotRemoveAction)
             currentLegalActions.remove(action);
 
-        // Action completed, either end turn or ask for another.
+        /*// Action completed, either end turn or ask for another.
         if (currentLegalActions.size() == 0 || (currentLegalActions.size() == 1 && currentLegalActions.contains(GameAction.END_TURN))) {
             requestAction(GameAction.END_TURN, key, null, 1);
         } else {
             signalTurn(-1, keyIndex);
-        }
+        }*/
 
-    }
-
-    /**
-     * Request the Game object perform an action, but DISALLOW RECURSION.
-     */
-    public void requestAction(GameAction action, UUID key, GameObject wrapper) {
-        requestAction(action, key, wrapper, 1);
     }
 
     /**
@@ -370,7 +371,9 @@ public class Game implements OutputsWarnings {
                     Card card = gameState.communityChest.drawCard();
                 }
                 case "Income Tax" -> {
-                    incrementCash(playerIndex, -200);
+                    if (!incrementCash(playerIndex, -200)) {
+                        // Failed to pay.
+                    }
                 }
                 case "Luxury Tax" -> {
                     incrementCash(playerIndex, -75);
@@ -431,16 +434,23 @@ public class Game implements OutputsWarnings {
 
     /**
      * Exits the game with a given status code.
+     * If status code == 0, exit gracefully.
+     * Force exit otherwise.
      */
     private void endGame(int statusCode) {
-        exit(statusCode);
+        if (statusCode == 0)
+            gameOverFlag = true;
+        else
+            exit(statusCode);
     }
 
     ////////////////////////////////////////
     // TODO: Handle race conditions
     // TODO: IMPLEMENTATION!!!
 
-    private void buyProperty(int playerIndex, Property property) {};
+    private void buyProperty(int playerIndex, Property property) {
+
+    }
 
     private void auctionProperty(int playerIndex, Property property) {};
 
@@ -453,26 +463,76 @@ public class Game implements OutputsWarnings {
     private void sellHouse(Property property, boolean hotel) {};
 
     /**
+     * Method called when a Player cannot pay a charge.
+     * Will result in the Player making up the funds via secondary means (e.g. mortgages, trades),
+     * ... or declaring bankruptcy.
+     * @param amount Amount owed.
+     * @param playerIndex Player that needs to pay.
+     * @return True if the dispute was resolved, false if Player declared bankruptcy.
+     */
+    private boolean cannotPay(int playerIndex, int amount) {
+
+        // Give player a chance to make up the funds
+        signalTurn(4, playerIndex, "You need to make up the funds to pay $" + amount + ".");
+        if (gameState.cash[playerIndex] >= amount)
+            return true;
+
+        // Bankrupt the player if they haven't raised the funds
+        bankruptPlayer(playerIndex);
+        return false;
+
+    }
+
+    /**
      * Transfer rent funds from Player A to Player B.
      * @param property Property landed on.
-     * @param victimIndex Index / ID of Player A (lander).
+     * @param playerIndex Index / ID of Player A (lander).
      * @param renterIndex Index / ID of Player B (renter).
      */
-    private void payRent(Property property, int victimIndex, int renterIndex) {
+    private void payRent(Property property, int playerIndex, int renterIndex) {
+
         int rentCost = property.calculateRent();
-        incrementCash(victimIndex, -rentCost);
+        incrementCash(playerIndex, -rentCost);
         incrementCash(renterIndex, rentCost);
+
     }
 
     /**
      * Increment Player's cash by a given amount.
      * This amount can be negative, but this will be handled by a sub-function decrementCash().
-     * TODO: Handle negative balances
+     * TODO: Incorporate return value where used
      * @param playerIndex Player index / ID.
-     * @param amount Amount of cash to give / remove from the Player.
+     * @param amount Amount of cash to give / remove from the Player. Can be negative.
+     * @return Success (t/f). Will always be true for positive values.
      */
-    private void incrementCash(int playerIndex, int amount) {
+    private boolean incrementCash(int playerIndex, int amount) {
+
+        // If negative amount, delegate task to decrementCash() instead
+        if (amount < 0)
+            return decrementCash(playerIndex, -amount);
+
+        // If positive amount...
         gameState.cash[playerIndex] += amount;
+        return true;
+
+    }
+
+    /**
+     * Decrement Player's cash by a given amount.
+     * This is a sub-function of incrementCash(). Don't call this in the wild.
+     * @param playerIndex Player index / ID.
+     * @param amount Amount of cash to remove from the player. Always positive.
+     * @return True if paid successfully, false if Player entered bankruptcy procedure.
+     */
+    private boolean decrementCash(int playerIndex, int amount) {
+
+        int playerCash = gameState.cash[playerIndex];
+        if (amount > playerCash)
+            return cannotPay(playerIndex, amount);  // Proceed w/ charge resolving procedure. Returns false if Player bankrupted.
+
+        gameState.cash[playerIndex] -= amount;  // Remember `amount` is positive.
+        return true;
+
     }
 
     /**
@@ -500,6 +560,8 @@ public class Game implements OutputsWarnings {
         // TODO
     }
 
+    private void bankruptPlayer(int playerIndex) {};  // TODO
+
     ////////////////////////////////////////
 
     /**
@@ -523,6 +585,8 @@ public class Game implements OutputsWarnings {
             case 2 -> legalActions = new HashSet<>(List.of(GameAction.END_ACTIONS));
             // Case 3 is used for beginning a turn in jail.
             case 3 -> legalActions = new HashSet<>(List.of(GameAction.JAIL_ACTIONS));
+            // Case 4 is used for making up funds when unable to pay.
+            case 4 -> legalActions = new HashSet<>(List.of(GameAction.SELL_ACTIONS));
             // Default case (e.g. -1) will simply return `currentLegalActions`.
             default -> legalActions = new HashSet<>(currentLegalActions);
         }

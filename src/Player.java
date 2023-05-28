@@ -30,7 +30,7 @@ public class Player implements OutputsWarnings {
 
     private Communicator communicator;
     private Decider decider;  // TODO
-    private OutPipe output;
+    private OutPipe output = new DebugOutPipe();
 
     public Player(Communicator communicator, String name, UUID uuid) {
         this.communicator = communicator;
@@ -183,7 +183,7 @@ public class Player implements OutputsWarnings {
     // Below state variables should be used as *indicators* on if certain actions are valid.
     // These are client-side variables ONLY; here for optimization.
     // The Game object may still reject any request.
-    private GameState gameStateCopy = communicator.requestCopyOfGameState();
+    private GameState gameStateCopy;
     private void syncState() {
         gameStateCopy = communicator.requestCopyOfGameState();
     }
