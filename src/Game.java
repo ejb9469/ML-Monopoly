@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
@@ -399,6 +398,7 @@ public class Game implements OutputsWarnings {
      * Move a Player's position forwards.
      * The direction *must* be forwards to handle cards, GO, etc.
      * Should NOT be called when the Player is in Jail.
+     * Should NOT be called in the wild.
      * @param playerIndex Player index / ID.
      * @param spaces Number of spaces to move. Must be positive.
      * @param rentMultiplier Multiplier for rent costs of landing on a Property.
@@ -419,6 +419,7 @@ public class Game implements OutputsWarnings {
      * Move a Player's position backwards.
      * The direction *must* be backwards to exclude "forwards functionalities" e.g. collecting money from GO.
      * Should NOT be called when the Player is in Jail.
+     * Should NOT be called in the wild.
      * @param playerIndex Player index / ID.
      * @param spaces Number of spaces to move. Must be positive.
      * @param rentMultiplier Multiplier for rent costs of landing on a Property.
