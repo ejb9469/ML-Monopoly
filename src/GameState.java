@@ -5,6 +5,8 @@ public class GameState {
 
     // (No need for a 'parent' variable.)
 
+    public static final int MAXIMUM_GTFO_JAIL_CARDS = 2;
+
     int numPlayers;
 
     public int turnIndicator;

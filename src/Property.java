@@ -1,8 +1,9 @@
 public class Property {
 
     public static final int BAIL_AMOUNT = 50;
+    public static final double UNMORTGAGE_INTEREST = 1.1;
 
-    protected String name;
+    private String name;
 
     protected COLOR_SET color;
     protected int marketPrice;

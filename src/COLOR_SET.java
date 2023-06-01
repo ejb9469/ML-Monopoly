@@ -1,4 +1,5 @@
 public enum COLOR_SET {
+
     BROWN,
     LIGHT_BLUE,
     PURPLE,
@@ -9,5 +10,6 @@ public enum COLOR_SET {
     DARK_BLUE,
     RAILROAD,
     UTILITY,
-    FUNCTION;
+    FUNCTION
+
 }

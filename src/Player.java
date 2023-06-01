@@ -28,9 +28,9 @@ public class Player implements OutputsWarnings {
 
     private final UUID uuid;
 
-    private Communicator communicator;
-    private Decider decider;  // TODO
-    private OutPipe output = new DebugOutPipe();
+    public Communicator communicator;  // TODO: Temporarily public!
+    private final Decider decider = new DebugDecider();  // TODO
+    private final OutPipe output = new DebugOutPipe();
 
     public Player(Communicator communicator, String name, UUID uuid) {
         this.communicator = communicator;
@@ -195,6 +195,12 @@ public class Player implements OutputsWarnings {
     }
     public int getId() {
         return id;
+    }
+
+
+    public void output(UUID uuid, String content) {
+        if (uuid.equals(this.uuid))
+            output.output(content);
     }
 
     public void warn(int code) {

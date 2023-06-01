@@ -71,4 +71,13 @@ public class Board {
         return -1;
     }
 
+    public List<Property> getSquaresOfColorSet(COLOR_SET colorSet) {
+        List<Property> out = new ArrayList<>();
+        for (Property property : squares) {
+            if (property.color == colorSet)
+                out.add(property);
+        }
+        return out;
+    }
+
 }

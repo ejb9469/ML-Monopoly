@@ -1,28 +1,34 @@
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class CardStack {
 
-    public static final List<Card> CHANCE_DEFAULT = new ArrayList<>();  // TODO
-    public static final List<Card> COMMUNITY_DEFAULT = new ArrayList<>();  // TODO
+    public static final List<CARD> CHANCE_DEFAULT = CARD.getCardSet(false);
+    public static final List<CARD> COMMUNITY_DEFAULT = CARD.getCardSet(true);
 
-    protected List<Card> stack;
-    private List<Card> alreadyDrawn = new ArrayList<>();
+    protected List<CARD> stack;
+    private List<CARD> alreadyDrawn = new ArrayList<>();
+    private int stackLoops = 0;
 
-    public CardStack() {
-        this.stack = new ArrayList<>();
-    }
-
-    public CardStack(List<Card> cardStack) {
+    public CardStack(List<CARD> cardStack) {
         this.stack = cardStack;
     }
 
-    public Card drawCard() {
-        Card card = stack.get(new Random().nextInt(stack.size()));
+    public CARD drawCard() {
+        if (stack.size() == 0) {
+            stack = new ArrayList<>(alreadyDrawn);
+            alreadyDrawn = new ArrayList<>();
+            stackLoops++;
+        }
+        CARD card = stack.get(new SecureRandom().nextInt(stack.size()));
         alreadyDrawn.add(card);
         stack.remove(card);
         return card;
+    }
+
+    public int getStackLoops() {
+        return stackLoops;
     }
 
     @Override
@@ -30,6 +36,7 @@ public class CardStack {
         if (!(object instanceof CardStack))
             return super.equals(object);
         CardStack cardStack = (CardStack)object;
+        // Remember, enums use ==
         return this.stack.equals(cardStack.stack) && this.alreadyDrawn.equals(cardStack.alreadyDrawn);
     }
 
