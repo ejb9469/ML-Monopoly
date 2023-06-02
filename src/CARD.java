@@ -40,7 +40,7 @@ public enum CARD {
 
     ADVANCE_TO_GO_2(false, "Advance to GO (Collect $200)"),
     COLLECT_200(false, "Bank error in your favor, collect $200."),
-    PAY_50(false, ""),
+    PAY_50(false, ""),  // TODO
     COLLECT_50_2(false, ""),
     GTFO_JAIL_2(false, ""),
     GO_TO_JAIL_2(false, ""),

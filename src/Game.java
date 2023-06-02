@@ -13,6 +13,7 @@ public class Game implements OutputsWarnings {
     public static final int MAX_TURNS = 100;
     public static final int MAX_DEPTH = 20;  // Used in requestAction()
     public static final int MAX_TRADES = 2;  // "per player per turn", currently unused
+    public static final int STARTING_BID_AMOUNT = 10;
     public static final String PROMPT_DEFAULT = "What action would you like to perform?";
 
     private static int ID_INCREMENT = 0;
@@ -23,6 +24,10 @@ public class Game implements OutputsWarnings {
     private int depth = 0;  // Used in requestAction()
 
     private Set<GameAction> currentLegalActions = new HashSet<>();
+
+    private int maxBid = -1;
+    private Property biddingProperty = null;
+    private List<Integer> auctionBids = null;
 
     private final GameState gameState;
     private final Player[] players;
@@ -203,7 +208,34 @@ public class Game implements OutputsWarnings {
 
             }
             case AUCTION_BID -> {
-                // TODO: Implement auctions!
+
+                // If beginning of auction, initialize list
+                if (auctionBids == null) {
+                    auctionBids = new ArrayList<>();
+                    // Initialize bidding
+                    for (int i = 0; i < gameState.numPlayers; i++)
+                        auctionBids.add(STARTING_BID_AMOUNT);
+                    maxBid = 0;  // This is the index of the Player with the highest bid, NOT the bid itself.
+                }
+
+                // Perform check on ownership status
+                if (gameState.ownership[board.getSquares().indexOf(biddingProperty)] != 0)
+                    break;
+
+                int bid = wrapper.objInt;
+
+                // Perform check on cash status
+                if (bid >= gameState.cash[keyIndex])
+                    bid = -1;
+
+                // Update `maxBid`
+                if (bid != -1)
+                    maxBid = keyIndex;
+
+                // Replace old bid with new bid (or lack thereof)
+                auctionBids.remove(keyIndex);
+                auctionBids.add(keyIndex, bid);
+
             }
             case HOUSE_BUILD -> {
 
@@ -678,8 +710,52 @@ public class Game implements OutputsWarnings {
         incrementCash(playerIndex, -property.marketPrice);
     }
 
-    // TODO! Auction subroutine!
-    private void auctionProperty(int playerIndex, Property property) {};
+    /**
+     * Begin the auction sub-routine for a Property.
+     * @param playerIndex Index / ID of the Player who started the auction.
+     * @param property Property up for auction.
+     */
+    private void auctionProperty(int playerIndex, Property property) {
+
+        // Initialize the `biddingProperty` field.
+        //      Note: The other two relevant fields - `maxBid` and `auctionBids` - are initialized in requestAction(),
+        //            but are de-initialized (along with `biddingProperty`) at the end of this function.
+        this.biddingProperty = property;
+
+        boolean multiplePlayersRemaining = true;
+        auctionSubroutine:
+        while (true) {
+            for (int i = 0; i < gameState.numPlayers; i++) {
+                for (Integer bid : auctionBids) {
+                    if (bid > 0) {
+                        multiplePlayersRemaining = !multiplePlayersRemaining;
+                        if (multiplePlayersRemaining)
+                            break;
+                    }
+                }
+                // This break case occurs when there is ONLY ONE Player remaining in the auction.
+                if (!multiplePlayersRemaining)
+                    break auctionSubroutine;
+                // Ask Player for bid.
+                playerIndex = (playerIndex + i) % gameState.numPlayers;
+                String prompt = players[playerIndex].getName() + ", what is your bid on " + property.getName() + "?";
+                prompt += "\nBid -1 to concede.";
+                signalTurn(5, playerIndex, prompt);
+            }
+        }
+
+        // At this point, `maxBid` contains the index / ID of the auction winner.
+        // Buy the property on behalf of this Player at the auction price.
+        int price = auctionBids.get(maxBid);
+        gameState.ownership[board.indexOf(property.getName())] = maxBid;
+        incrementCash(maxBid, -price);
+
+        // De-initialize relevant fields.
+        this.maxBid = -1;
+        this.auctionBids = null;
+        this.biddingProperty = null;
+
+    }
 
     /**
      * Mortgage a Property.
@@ -831,8 +907,8 @@ public class Game implements OutputsWarnings {
      */
     private void freePlayer(int playerIndex, int context) {
         switch (context) {
-            case (1) -> incrementCash(playerIndex, -Property.BAIL_AMOUNT);
-            case (2) -> gameState.gtfoJailCards[playerIndex]--;
+            case 1 -> incrementCash(playerIndex, -Property.BAIL_AMOUNT);
+            case 2 -> gameState.gtfoJailCards[playerIndex]--;
         }
         gameState.jailedPlayers[playerIndex] = false;
     }
@@ -864,6 +940,8 @@ public class Game implements OutputsWarnings {
             case 3 -> legalActions = new HashSet<>(List.of(GameAction.JAIL_ACTIONS));
             // Case 4 is used for making up funds when unable to pay.
             case 4 -> legalActions = new HashSet<>(List.of(GameAction.SELL_ACTIONS));
+            // Case 5 is used for the auction sub-routine.
+            case 5 -> legalActions = new HashSet<>(List.of(GameAction.AUCTION_BID));
             // Default case (e.g. -1) will simply return `currentLegalActions`.
             default -> legalActions = new HashSet<>(currentLegalActions);
         }
