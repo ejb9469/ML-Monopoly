@@ -1,10 +1,5 @@
-                                    DONE 1) Comment everything
-                                    DLAY 2) Packages & folder structure
-                                    DONE 3) Elaborate on Communicator interface
-4) Game logic
-                                     MAX 5) Graphics
-
-- Go through To-Do markers
-
-
-- Make better prompt strings
+1) Auction procedure loops infinitely
+2) Make stdout clearer abt. wtf is going on (dump vars?)
+3) Change wrapper requirements
+4) Update async variable (auction procedure calls warn())
+5) Update warn() usages to be more accurate

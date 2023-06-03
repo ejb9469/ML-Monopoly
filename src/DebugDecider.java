@@ -8,9 +8,9 @@ public class DebugDecider implements Decider {
 
     @Override
     public LinkedHashMap<GameAction, GameObject> decide(Set<GameAction> possibleActions, GameState gameState, Player playerObject, boolean canEndTurn) {
-        //System.out.println("Possible actions: \n" + printActionsSet(possibleActions));
+        System.out.println("Possible actions: \n" + printActionsSet(possibleActions));
         //Scanner sc = new Scanner(System.in);
-        GameAction action = GameAction.valueOf(sc.nextLine().strip());
+        GameAction action = GameAction.valueOf(sc.nextLine().strip().toUpperCase());
         GameObject wrapper = new GameObject();
         System.out.print("objInt: ");
         wrapper.objInt = Integer.parseInt(sc.nextLine().strip());

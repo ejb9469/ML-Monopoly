@@ -98,6 +98,9 @@ public class Game implements OutputsWarnings {
             return;
         }
 
+        // Skip the turn of a bankrupted player.
+        if (gameState.playerBankruptcy[keyIndex]) return;
+
         // Check if legal move. If not, reject it & replace with END_TURN.
         if (!currentLegalActions.contains(action)) {
             warn(2);
@@ -208,15 +211,6 @@ public class Game implements OutputsWarnings {
 
             }
             case AUCTION_BID -> {
-
-                // If beginning of auction, initialize list
-                if (auctionBids == null) {
-                    auctionBids = new ArrayList<>();
-                    // Initialize bidding
-                    for (int i = 0; i < gameState.numPlayers; i++)
-                        auctionBids.add(STARTING_BID_AMOUNT);
-                    maxBid = 0;  // This is the index of the Player with the highest bid, NOT the bid itself.
-                }
 
                 // Perform check on ownership status
                 if (gameState.ownership[board.getSquares().indexOf(biddingProperty)] != 0)
@@ -717,10 +711,12 @@ public class Game implements OutputsWarnings {
      */
     private void auctionProperty(int playerIndex, Property property) {
 
-        // Initialize the `biddingProperty` field.
-        //      Note: The other two relevant fields - `maxBid` and `auctionBids` - are initialized in requestAction(),
-        //            but are de-initialized (along with `biddingProperty`) at the end of this function.
+        // Initialize relevant fields.
         this.biddingProperty = property;
+        this.auctionBids = new ArrayList<>();
+        for (int i = 0; i < gameState.numPlayers; i++)
+            auctionBids.add(STARTING_BID_AMOUNT);
+        this.maxBid = 0;  // This is the index of the Player with the highest bid, NOT the bid itself.
 
         boolean multiplePlayersRemaining = true;
         auctionSubroutine:
@@ -913,7 +909,17 @@ public class Game implements OutputsWarnings {
         gameState.jailedPlayers[playerIndex] = false;
     }
 
-    private void bankruptPlayer(int playerIndex) {};  // TODO
+    /**
+     * Mark a Player's bankruptcy flag.
+     * Bankrupt Players are handled like so:
+     *      1) Bankrupt Players' turns are ignored in any & all cases.
+     *      2) Bankrupt Players cannot trade.
+     *      3) Bankrupt Players are disqualified from winning the game.
+     * @param playerIndex Player index / ID.
+     */
+    private void bankruptPlayer(int playerIndex) {
+        gameState.playerBankruptcy[playerIndex] = true;
+    }
 
     ////////////////////////////////////////
 
