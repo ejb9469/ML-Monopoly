@@ -5,4 +5,9 @@ public class DebugOutPipe implements OutPipe {
         System.out.println(prompt);
     }
 
+    @Override
+    public void output(PromptString prompt) {
+        System.out.println(prompt);
+    }
+
 }

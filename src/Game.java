@@ -392,7 +392,7 @@ public class Game implements OutputsWarnings {
         Set<GameAction> legalActions = generateLegalActions(execCodeFlow, nixedActions);
         Set<GameAction> currentLegalActions_old = new HashSet<>(currentLegalActions);
         currentLegalActions = legalActions;
-        players[playerIndex].signalTurn(legalActions, playerUUIDs[playerIndex], prompt);
+        players[playerIndex].signalTurn(legalActions, playerUUIDs[playerIndex], new PromptString(prompt, players[playerIndex], this.getGameState()));
         currentLegalActions = currentLegalActions_old;
     }
     private void signalTurn(int execCodeFlow, int playerIndex, String prompt) {
@@ -808,7 +808,7 @@ public class Game implements OutputsWarnings {
             gameState.houses[propertyIndex]--;
             gameState.remainingHouses++;
         }
-        incrementCash(playerIndex, property.baseHouseCost * property.houseSellDivisor);
+        incrementCash(playerIndex, (int)(property.baseHouseCost * property.houseSellDivisor));
     }
 
     /**

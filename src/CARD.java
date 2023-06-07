@@ -99,6 +99,11 @@ public enum CARD {
         return description;
     }
 
+    @Override
+    public String toString() {
+        return this.name();
+    }
+
 }
 
 // List of Chance cards:

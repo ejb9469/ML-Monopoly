@@ -1,3 +1,4 @@
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
 /**
@@ -72,6 +73,34 @@ public class GameState {
             return super.equals(object);
         GameState gs = (GameState)object;
         return (this.turnIndicator == gs.turnIndicator && this.mortgages.equals(gs.mortgages) && this.ownership.equals(gs.ownership) && this.cash.equals(gs.cash) && this.houses.equals(gs.houses) && this.playerLocations.equals(gs.playerLocations) && this.timesRolled.equals(gs.timesRolled) && this.jailedPlayers.equals(gs.jailedPlayers) && this.gtfoJailCards.equals(gs.gtfoJailCards) && this.playerBankruptcy.equals(gs.playerBankruptcy) && this.chance.equals(gs.chance) && this.communityChest.equals(gs.communityChest));
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getName());
+        str.append(" {\n");
+        Field[] fields = this.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            str.append("\t");
+            try {
+                str.append(field.getName());
+                str.append(": ");
+                if (field.get(this) instanceof boolean[])
+                    str.append(Arrays.toString((boolean[]) field.get(this)));
+                else if (field.get(this) instanceof int[])
+                    str.append(Arrays.toString((int[]) field.get(this)));
+                else if (field.get(this) instanceof CardStack)
+
+                str.append(field.get(this));
+            } catch (IllegalAccessException ex) {
+                ex.printStackTrace();
+            }
+            str.append("\n");
+        }
+        str.append("}");
+        return str.toString();
     }
 
 }

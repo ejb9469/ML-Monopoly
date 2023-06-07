@@ -45,9 +45,9 @@ public class Player implements OutputsWarnings {
      * @param uuid Player's UUID key, supplied here to ensure only the Game object can apply the signal.
      * @param prompt Prompt displayed to the user.
      */
-    public void signalTurn(Set<GameAction> legalActions, UUID uuid, String prompt) {
+    public void signalTurn(Set<GameAction> legalActions, UUID uuid, PromptString prompt) {
 
-        if (prompt == null) prompt = "";
+        if (prompt == null) prompt.str = "";
 
         // Reject bad authentication
         if (!uuid.equals(this.uuid)) {

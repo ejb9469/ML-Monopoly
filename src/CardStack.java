@@ -40,4 +40,14 @@ public class CardStack {
         return this.stack.equals(cardStack.stack) && this.alreadyDrawn.equals(cardStack.alreadyDrawn);
     }
 
+    @Override
+    public String toString() {
+        try {
+            return stack.get(0).toString();
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            ex.printStackTrace();
+            return super.toString();
+        }
+    }
+
 }

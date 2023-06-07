@@ -10,7 +10,7 @@ public class Property {
     protected double mortgageDivisor;
     protected int baseRent;
     protected int baseHouseCost;
-    protected int houseSellDivisor;
+    protected double houseSellDivisor;
     protected int[] rentTable;
 
     protected int numHouses = 0;  // hotel = 5
@@ -35,7 +35,7 @@ public class Property {
      * @param houseSellDivisor Reduction of house price for selling.
      * @param rentTable Table of rent amounts given 1-5 houses.
      */
-    public Property(String name, COLOR_SET color, int marketPrice, double mortgageDivisor, int baseRent, int baseHouseCost, int houseSellDivisor, int[] rentTable) {
+    public Property(String name, COLOR_SET color, int marketPrice, double mortgageDivisor, int baseRent, int baseHouseCost, double houseSellDivisor, int[] rentTable) {
         this(name, color);
         this.marketPrice = marketPrice;
         this.mortgageDivisor = mortgageDivisor;

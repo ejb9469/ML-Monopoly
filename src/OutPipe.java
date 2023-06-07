@@ -3,4 +3,5 @@
  */
 public interface OutPipe {
     void output(String prompt);
+    void output(PromptString prompt);
 }
