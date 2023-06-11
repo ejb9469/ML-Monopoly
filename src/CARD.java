@@ -59,17 +59,17 @@ public enum CARD {
     private final String fullName;
     private final String description;
 
-    private CARD(boolean chance, String fullName, String description) {
+    CARD(boolean chance, String fullName, String description) {
         this.chance = chance;
         this.fullName = fullName;
         this.description = description;
     }
 
-    private CARD(boolean chance, String fullName) {
+    CARD(boolean chance, String fullName) {
         this(chance, fullName, "");
     }
 
-    private CARD(CARD duplicate) {
+    CARD(CARD duplicate) {
         this(duplicate.chance, duplicate.fullName, duplicate.description);
     }
 

@@ -33,9 +33,8 @@ public class CardStack {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof CardStack))
+        if (!(object instanceof CardStack cardStack))
             return super.equals(object);
-        CardStack cardStack = (CardStack)object;
         // Remember, enums use ==
         return this.stack.equals(cardStack.stack) && this.alreadyDrawn.equals(cardStack.alreadyDrawn);
     }

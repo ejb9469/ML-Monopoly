@@ -1,5 +1,4 @@
 import java.util.*;
-import java.util.List;
 
 import static java.lang.System.exit;
 // ^^ Might not be a great idea to exit this way ^^
@@ -33,7 +32,6 @@ public class Game implements OutputsWarnings {
     private final Player[] players;
     private final UUID[] playerUUIDs;
     public final Board board;  // TODO: Temporarily public!
-    private final Communicator communicator;
 
     /**
      * Constructs a Game given a pre-existing Communicator object.
@@ -44,7 +42,6 @@ public class Game implements OutputsWarnings {
     public Game(int numPlayers, String[] names, Communicator communicator) {
         if (communicator == null)
             communicator = new DebugPipe(this);
-        this.communicator = communicator;
         this.board = new Board(this);
 
         playerUUIDs = new UUID[numPlayers];
@@ -480,6 +477,7 @@ public class Game implements OutputsWarnings {
                 case "Income Tax" -> {
                     if (!incrementCash(playerIndex, -200)) {
                         // Failed to pay. Bankrupted.
+                        // TODO
                     }
                 }
                 case "Luxury Tax" -> {

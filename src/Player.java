@@ -23,8 +23,8 @@ public class Player implements OutputsWarnings {
 
     private static int ID_INCREMENT = 0;
 
-    private String name;
-    private int id = ID_INCREMENT++;
+    private final String name;
+    private final int id = ID_INCREMENT++;
 
     private final UUID uuid;
 
@@ -46,7 +46,7 @@ public class Player implements OutputsWarnings {
      */
     public void signalTurn(Set<GameAction> legalActions, UUID uuid, PromptString prompt) {
 
-        if (prompt == null) prompt.str = "";
+        if (prompt == null) prompt = new PromptString("", this);
 
         // Reject bad authentication
         if (!uuid.equals(this.uuid)) {

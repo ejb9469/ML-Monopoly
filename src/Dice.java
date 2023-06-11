@@ -1,6 +1,6 @@
 import java.security.SecureRandom;
 public class Dice {
-    private SecureRandom random;
+    private final SecureRandom random;
     public boolean doubles = false;
     public Dice() {
         random = new SecureRandom();

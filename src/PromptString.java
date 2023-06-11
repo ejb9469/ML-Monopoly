@@ -4,8 +4,8 @@
 public class PromptString {
 
     public String str;
-    private Player player;
-    private GameState gameState;
+    private final Player player;
+    private final GameState gameState;
 
     public PromptString(String str, Player player, GameState gameState) {
         this.str = str;
