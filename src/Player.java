@@ -40,7 +40,6 @@ public class Player implements OutputsWarnings {
 
     /**
      * Entry method for the Game object to signal a Player object to take its turn.
-     *      TODO: Deep learning stuff goes here, requested via the Communicator.
      * @param legalActions Set of GameActions considered legal by the caller.
      * @param uuid Player's UUID key, supplied here to ensure only the Game object can apply the signal.
      * @param prompt Prompt displayed to the user.

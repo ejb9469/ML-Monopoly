@@ -437,7 +437,7 @@ public class Game implements OutputsWarnings {
         if (landingLocation <= currentLocation || spaces >= board.getSquares().size())  // GO procedure
             incrementCash(playerIndex, 200);
 
-        handleMoveLanding(playerIndex, landingLocation, rentMultiplier);
+        handleMoveLanding(playerIndex, spaces, landingLocation, rentMultiplier);
 
     }
 
@@ -455,7 +455,7 @@ public class Game implements OutputsWarnings {
         int currentLocation = gameState.playerLocations[playerIndex];
         int landingLocation = (currentLocation - spaces) % board.getSquares().size();
 
-        handleMoveLanding(playerIndex, landingLocation, rentMultiplier);
+        handleMoveLanding(playerIndex, spaces, landingLocation, rentMultiplier);
 
     }
 
@@ -466,7 +466,7 @@ public class Game implements OutputsWarnings {
      * @param landingLocation Index of landing Property.
      * @param rentMultiplier Multiplier for rent costs of landing on a Property.
      */
-    private void handleMoveLanding(int playerIndex, int landingLocation, double rentMultiplier) {
+    private void handleMoveLanding(int playerIndex, int spaces, int landingLocation, double rentMultiplier) {
 
         Property landingProperty = board.getSquares().get(landingLocation);
 
@@ -494,7 +494,7 @@ public class Game implements OutputsWarnings {
         }
 
         // We're dealing with a rented Property
-        else {  // TODO: Handle railroad and utility rent schemas
+        else {
 
             // Property is NOT OWNED - buy/auction
             if (gameState.ownership[landingLocation] == 0) {
@@ -504,7 +504,7 @@ public class Game implements OutputsWarnings {
 
             // Property is OWNED - pay rent
             else {
-                payRent(landingProperty, playerIndex, gameState.ownership[landingLocation], rentMultiplier);
+                payRent(landingProperty, playerIndex, gameState.ownership[landingLocation], spaces, rentMultiplier);
             }
 
         }
@@ -709,7 +709,7 @@ public class Game implements OutputsWarnings {
      * @param playerIndex Index / ID of the Player who started the auction.
      * @param property Property up for auction.
      */
-    private void auctionProperty(int playerIndex, Property property) {
+    private void auctionProperty(int playerIndex, Property property) {  // TODO: Re-do the auction functionality.
 
         // Initialize relevant fields.
         this.biddingProperty = property;
@@ -717,34 +717,42 @@ public class Game implements OutputsWarnings {
         for (int i = 0; i < gameState.numPlayers; i++)
             auctionBids.add(STARTING_BID_AMOUNT);
         this.maxBid = 0;  // This is the index of the Player with the highest bid, NOT the bid itself.
+                          // TODO: Remove!! Deprecated.
 
-        boolean multiplePlayersRemaining = true;
         auctionSubroutine:
         while (true) {
             for (int i = 0; i < gameState.numPlayers; i++) {
+                playerIndex = (playerIndex + i) % gameState.numPlayers;
+                if (auctionBids.get(playerIndex) < 0) continue;
+                int playersRemaining = gameState.numPlayers;
                 for (Integer bid : auctionBids) {
-                    if (bid > 0) {
-                        multiplePlayersRemaining = !multiplePlayersRemaining;
-                        if (multiplePlayersRemaining)
-                            break;
-                    }
+                    if (bid < 0)
+                        playersRemaining--;
                 }
                 // This break case occurs when there is ONLY ONE Player remaining in the auction.
-                if (!multiplePlayersRemaining)
+                if (playersRemaining == 1)
                     break auctionSubroutine;
                 // Ask Player for bid.
-                playerIndex = (playerIndex + i) % gameState.numPlayers;
                 String prompt = players[playerIndex].getName() + ", what is your bid on " + property.getName() + "?";
                 prompt += "\nBid -1 to concede.";
-                signalTurn(5, playerIndex, prompt);
+                signalTurn(5, playerIndex+1, prompt);
             }
         }
 
-        // At this point, `maxBid` contains the index / ID of the auction winner.
+        int price = -1;
+        int winner = -1;
+        for (int i = 0; i < auctionBids.size(); i++) {
+            int bid = auctionBids.get(i);
+            if (bid != -1) {
+                price = bid;
+                winner = i;
+                break;
+            }
+        }
+
         // Buy the property on behalf of this Player at the auction price.
-        int price = auctionBids.get(maxBid);
-        gameState.ownership[board.indexOf(property.getName())] = maxBid;
-        incrementCash(maxBid, -price);
+        gameState.ownership[board.indexOf(property.getName())] = winner;
+        incrementCash(winner, -price);
 
         // De-initialize relevant fields.
         this.maxBid = -1;
@@ -838,9 +846,9 @@ public class Game implements OutputsWarnings {
      * @param playerIndex Index / ID of Player A (lander).
      * @param renterIndex Index / ID of Player B (renter).
      */
-    private void payRent(Property property, int playerIndex, int renterIndex, double rentMultiplier) {
+    private void payRent(Property property, int playerIndex, int renterIndex, int spaces, double rentMultiplier) {
 
-        int rentCost = (int)(property.calculateRent() * rentMultiplier);
+        int rentCost = (int)(property.calculateRent(this.getGameState(), this.board, spaces) * rentMultiplier);
         incrementCash(playerIndex, -rentCost);
         incrementCash(renterIndex, rentCost);
 
