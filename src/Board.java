@@ -49,14 +49,10 @@ public class Board {
 
     private final List<Property> squares = new ArrayList<>(SQUARES);
 
-    protected Game parentGame;
+    protected final Game parentGame;
 
     public Board(Game parentGame) {
         this.parentGame = parentGame;
-    }
-
-    public Game getParentGame() {
-        return parentGame;
     }
 
     public List<Property> getSquares() {

@@ -1,24 +1,6 @@
 import java.util.ArrayList;
 import java.util.List;
 
-// List of Community Chest cards:
-// 1. Advance to Go
-// 2. Bank error in your favor, collect $200.
-// 3. Doctor's fee pay $50
-// 4. From sale of stock you get $50
-// 5. GTFO Jail Free
-// 6. Go to Jail
-// 7. Holiday fund matures, receive $100.
-// 8. Income tax refund, collect $20.
-// 9. It is your birthday, collect $100.
-// 10. Life insurance matures, collect $100.
-// 11. Pay hospital fees of $100.
-// 12. Pay school fees of $50.
-// 13. Receive $25 consultancy fee
-// 14. Street repairs. $40 per house and $115 per hotel.
-// 15. Second prize in a beauty contest, collect $10.
-// 16. You inherit $100.
-
 public enum CARD {
 
     ADVANCE_TO_BOARDWALK(true, "Advance to Boardwalk"),
@@ -26,7 +8,7 @@ public enum CARD {
     ADVANCE_TO_ILLINOIS(true, "Advance to Illinois Avenue", "If you pass GO, collect $200."),
     ADVANCE_TO_ST_CHARLES(true, "Advance to St. Charles Place", "If you pass GO, collect $200."),
     ADVANCE_TO_NEAREST_RAILROAD(true, "Advance to the nearest Railroad", "If unowned, you may buy it from the Bank. If owned, pay owner twice the rent to which they are otherwise entitled."),
-    ADVANCE_TO_NEAREST_RAILROAD_2(CARD.ADVANCE_TO_NEAREST_RAILROAD),
+    ADVANCE_TO_NEAREST_RAILROAD_2(true, CARD.ADVANCE_TO_NEAREST_RAILROAD),
     ADVANCE_TO_NEAREST_UTILITY(true, "Advance to the nearest Utility", "If unowned, you may buy it from the Bank. If owned, throw dice and pay owner 10x amount thrown."),
     COLLECT_50(true, "Bank pays you a dividend of $50"),
     GTFO_JAIL(true, "Get Out of Jail Free", "This card may be kept until needed, or sold."),
@@ -40,20 +22,20 @@ public enum CARD {
 
     ADVANCE_TO_GO_2(false, "Advance to GO (Collect $200)"),
     COLLECT_200(false, "Bank error in your favor, collect $200."),
-    PAY_50(false, ""),  // TODO
-    COLLECT_50_2(false, ""),
-    GTFO_JAIL_2(false, ""),
-    GO_TO_JAIL_2(false, ""),
-    COLLECT_100(false, ""),
-    COLLECT_20(false, ""),
-    COLLECT_100_2(false, ""),
-    COLLECT_100_3(false, ""),
-    PAY_100(false, ""),
-    PAY_50_2(false, ""),
-    COLLECT_25(false, ""),
-    STREET_REPAIRS(false, ""),
-    COLLECT_10(false, ""),
-    COLLECT_100_4(false, "");
+    PAY_50(false, "Doctor's fee, pay $50."),
+    COLLECT_50_EACH_PLAYER(false, "Collect $50 from every player for opening night seats.", "Grand Opera Opening"),
+    GTFO_JAIL_2(false, GTFO_JAIL),
+    GO_TO_JAIL_2(false, GO_TO_JAIL),
+    COLLECT_100(false, "Collect $100.", "Xmas fund matures."),
+    COLLECT_20(false, "Collect $20.", "Income tax refund."),
+    COLLECT_100_2(false, "Collect $100.", "Life insurance matures."),
+    COLLECT_100_3(false, "You inherit $100."),
+    PAY_100(false, "Pay hospital $100."),
+    PAY_50_2(false, "Pay school fees of $50."),
+    COLLECT_25(false, "Receive for services", "Collect $25"),
+    STREET_REPAIRS(false, "You are assessed for street repairs", "$40 per house, $115 per hotel."),
+    COLLECT_10(false, "You have won second prize in a beauty contest!", "Collect $10."),
+    COLLECT_100_4(false, "You inherit $100.");
 
     private final boolean chance;
     private final String fullName;
@@ -69,9 +51,7 @@ public enum CARD {
         this(chance, fullName, "");
     }
 
-    CARD(CARD duplicate) {
-        this(duplicate.chance, duplicate.fullName, duplicate.description);
-    }
+    CARD(boolean chance, CARD duplicate) { this(chance, duplicate.fullName, duplicate.description); }
 
     /**
      * @param communityChest If true, grab from the Community Chest set. If false, grab from the Chance set.
@@ -123,3 +103,21 @@ public enum CARD {
     // 14. Advance to Reading Railroad
     // 15. Chairman of the board, pay each player $50.
     // 16. Building loan matures. Collect $150.
+
+// List of Community Chest cards:
+    // 1. Advance to Go
+    // 2. Bank error in your favor, collect $200.
+    // 3. Doctor's fee pay $50
+    // 4. From sale of stock you get $50
+    // 5. GTFO Jail Free
+    // 6. Go to Jail
+    // 7. Holiday fund matures, receive $100.
+    // 8. Income tax refund, collect $20.
+    // 9. It is your birthday, collect $100.
+    // 10. Life insurance matures, collect $100.
+    // 11. Pay hospital fees of $100.
+    // 12. Pay school fees of $50.
+    // 13. Receive $25 consultancy fee
+    // 14. Street repairs. $40 per house and $115 per hotel.
+    // 15. Second prize in a beauty contest, collect $10.
+    // 16. You inherit $100.

@@ -11,24 +11,24 @@ public class GameState {
     public static final int MAXIMUM_GTFO_JAIL_CARDS = 2;
     public static final int STARTING_CASH = 1500;
 
-    int numPlayers;
+    final int numPlayers;
 
     public int turnIndicator;
-    public boolean[] mortgages;
-    public int[] ownership;
-    public int[] cash;
-    public int[] houses;  // '5 houses' will equal a hotel
-    public int[] playerLocations;
-    public int[] timesRolled;
-    public boolean[] jailedPlayers;
-    public int[] gtfoJailCards;
-    public boolean[] playerBankruptcy;
+    public final boolean[] mortgages;
+    public final int[] ownership;
+    public final int[] cash;
+    public final int[] houses;  // '5 houses' will equal a hotel
+    public final int[] playerLocations;
+    public final int[] timesRolled;
+    public final boolean[] jailedPlayers;
+    public final int[] gtfoJailCards;
+    public final boolean[] playerBankruptcy;
 
     public int remainingHouses;
     public int remainingHotels;
 
-    public CardStack chance;
-    public CardStack communityChest;
+    public final CardStack chance;
+    public final CardStack communityChest;
 
     // Called when constructing a GameState manually.
     public GameState(int numPlayers, int turnIndicator, boolean[] mortgages, int[] ownership, int[] cash, int[] houses, int[] playerLocations, int[] timesRolled, boolean[] jailedPlayers, int[] gtfoJailCards, boolean[] playerBankruptcy, int remainingHouses, int remainingHotels, CardStack chance, CardStack communityChest) {
@@ -66,6 +66,7 @@ public class GameState {
      */
     private void initializeStartingValues() {
         Arrays.fill(this.cash, STARTING_CASH);
+        Arrays.fill(this.ownership, -1);
     }
 
     @Override

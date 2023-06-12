@@ -1,7 +1,6 @@
-1) Re-do auction implementation.
+1) Fix remaining bugs with auction procedure.
 2) Figure out what we're doing with async variable. It's deprecated rn and maybe shouldn't be.
 3) Update warn() and its usages.
-==DONE== 4) Implement Utilities and Railroads logic.
 
 Also:
 *) Change wrapper requirements to make stdin debugging easier.

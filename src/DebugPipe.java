@@ -5,7 +5,7 @@ import java.util.UUID;
  */
 public class DebugPipe implements Communicator {
 
-    public Game server;  // TODO: Temporarily public!
+    public final Game server;  // TODO: Temporarily public!
 
     public DebugPipe(Game server) {
         this.server = server;

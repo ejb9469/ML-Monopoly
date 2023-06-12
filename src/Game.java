@@ -24,7 +24,6 @@ public class Game implements OutputsWarnings {
 
     private Set<GameAction> currentLegalActions = new HashSet<>();
 
-    private int maxBid = -1;
     private Property biddingProperty = null;
     private List<Integer> auctionBids = null;
 
@@ -161,7 +160,7 @@ public class Game implements OutputsWarnings {
                 if (
                            !isPlayerTurn
                         || gameState.playerLocations[keyIndex] != propertyIndex  // Player did not land on the Property
-                        || gameState.ownership[propertyIndex] != 0  // Property is already owned
+                        || gameState.ownership[propertyIndex] != -1  // Property is already owned
                 ) break;
 
                 if (wrapper.objBool && gameState.cash[keyIndex] >= wrapper.objProperty.marketPrice) {
@@ -210,7 +209,7 @@ public class Game implements OutputsWarnings {
             case AUCTION_BID -> {
 
                 // Perform check on ownership status
-                if (gameState.ownership[board.getSquares().indexOf(biddingProperty)] != 0)
+                if (gameState.ownership[board.getSquares().indexOf(biddingProperty)] != -1)
                     break;
 
                 int bid = wrapper.objInt;
@@ -219,13 +218,8 @@ public class Game implements OutputsWarnings {
                 if (bid >= gameState.cash[keyIndex])
                     bid = -1;
 
-                // Update `maxBid`
-                if (bid != -1)
-                    maxBid = keyIndex;
-
                 // Replace old bid with new bid (or lack thereof)
-                auctionBids.remove(keyIndex);
-                auctionBids.add(keyIndex, bid);
+                auctionBids.set(keyIndex, bid);
 
             }
             case HOUSE_BUILD -> {
@@ -477,7 +471,7 @@ public class Game implements OutputsWarnings {
                 case "Income Tax" -> {
                     if (!incrementCash(playerIndex, -200)) {
                         // Failed to pay. Bankrupted.
-                        // TODO
+                        // TODO: Is there anything to do at this point?
                     }
                 }
                 case "Luxury Tax" -> {
@@ -495,7 +489,7 @@ public class Game implements OutputsWarnings {
         else {
 
             // Property is NOT OWNED - buy/auction
-            if (gameState.ownership[landingLocation] == 0) {
+            if (gameState.ownership[landingLocation] == -1) {
                 String prompt = "Buy / auction " + board.getSquares().get(landingLocation).getName();
                 signalTurn(1, playerIndex, prompt);
             }
@@ -586,7 +580,7 @@ public class Game implements OutputsWarnings {
                 moveToken(playerIndex, distanceToMove, utilityRentMultiplier);
 
             }
-            case COLLECT_50, COLLECT_50_2 -> {
+            case COLLECT_50 -> {
                 incrementCash(playerIndex, 50);
             }
             case GTFO_JAIL, GTFO_JAIL_2 -> {
@@ -614,7 +608,7 @@ public class Game implements OutputsWarnings {
                 // We remove the cash from the player *first*
                 incrementCash(playerIndex, -50 * gameState.numPlayers);
                 for (int i = 0; i < gameState.cash.length; i++) {
-                    if (playerIndex == i) continue;
+                    if (i == playerIndex) continue;
                     incrementCash(i, 50);
                 }
             }
@@ -628,6 +622,16 @@ public class Game implements OutputsWarnings {
             }
             case PAY_50, PAY_50_2 -> {
                 incrementCash(playerIndex, -50);
+            }
+            case COLLECT_50_EACH_PLAYER -> {
+                // We remove the cash from the players *first*
+                int payingPlayers = 0;
+                for (int i = 0; i < gameState.cash.length; i++) {
+                    if (i == playerIndex) continue;
+                    if (incrementCash(i, -50))
+                        payingPlayers++;
+                }
+                incrementCash(playerIndex, 50 * payingPlayers);
             }
             case COLLECT_100, COLLECT_100_2, COLLECT_100_3, COLLECT_100_4 -> {
                 incrementCash(playerIndex, 100);
@@ -698,8 +702,17 @@ public class Game implements OutputsWarnings {
      * Pre-req: Passed all checks.
      */
     private void buyProperty(int playerIndex, Property property) {
+        incrementCash(playerIndex, -property.marketPrice);  // Take cash out of account *first*!
         gameState.ownership[board.indexOf(property.getName())] = playerIndex;
-        incrementCash(playerIndex, -property.marketPrice);
+    }
+
+    /**
+     * Buy a Property for the referenced Player at a custom cost.
+     * Used primarily in the auction procedure.
+     */
+    private void buyProperty(int playerIndex, Property property, int customCost) {
+        incrementCash(playerIndex, -customCost);
+        gameState.ownership[board.indexOf(property.getName())] = playerIndex;
     }
 
     /**
@@ -707,53 +720,68 @@ public class Game implements OutputsWarnings {
      * @param playerIndex Index / ID of the Player who started the auction.
      * @param property Property up for auction.
      */
-    private void auctionProperty(int playerIndex, Property property) {  // TODO: Re-do the auction functionality.
+    private void auctionProperty(int playerIndex, Property property) {
 
-        // Initialize relevant fields.
+        // TODO: Fix "maximum bid" portion.
+        //      ==FIXED== 1) Purchases property for wrong amount (150 vs. 1000 when 150 was never even a bid!). ==FIXED==
+        //      2) Allows for bids under the current bid (e.g. 90 when max bid is 200).
+        //          Note: Just implemented this: it should enforce bids as max bids. Must test.
+
+        // Initialize relevant fields
         this.biddingProperty = property;
         this.auctionBids = new ArrayList<>();
         for (int i = 0; i < gameState.numPlayers; i++)
             auctionBids.add(STARTING_BID_AMOUNT);
-        this.maxBid = 0;  // This is the index of the Player with the highest bid, NOT the bid itself.
-                          // TODO: Remove!! Deprecated.
 
-        auctionSubroutine:
-        while (true) {
+        // Auction procedure
+        boolean multiplePlayersRemaining = true;
+        while (multiplePlayersRemaining) {
             for (int i = 0; i < gameState.numPlayers; i++) {
-                playerIndex = (playerIndex + i) % gameState.numPlayers;
-                if (auctionBids.get(playerIndex) < 0) continue;
+
+                int pIndex = (playerIndex + i) % gameState.numPlayers;
+
+                // Skip turns of Players who've dropped out of the auction
+                if (auctionBids.get(pIndex) < 0) continue;
+
+                // Check # of Players remaining in the auction.
+                // Exit the loop if only 1 Player remains.
                 int playersRemaining = gameState.numPlayers;
-                for (Integer bid : auctionBids) {
+                for (int bid : auctionBids) {
                     if (bid < 0)
                         playersRemaining--;
                 }
-                // This break case occurs when there is ONLY ONE Player remaining in the auction.
-                if (playersRemaining == 1)
-                    break auctionSubroutine;
-                // Ask Player for bid.
-                String prompt = players[playerIndex].getName() + ", what is your bid on " + property.getName() + "?";
-                prompt += "\nBid -1 to concede.";
-                signalTurn(5, playerIndex+1, prompt);
+                if (playersRemaining < 2) {  // This should never be <= 0, but just in case
+                    multiplePlayersRemaining = false;
+                    break;
+                }
+
+                // Signal Player for bid
+                String prompt = "What is your bid on " + property.getName() + "?\nBid -1 to concede.";
+                signalTurn(5, pIndex, prompt);
+
+                // Replace all negative bids and non-max bids with -1
+                // Obtuse comparison because we're dealing with `Integer` objects (smile)
+                if (auctionBids.get(pIndex) < 0 || !auctionBids.get(pIndex).equals(Collections.max(auctionBids)))
+                    auctionBids.set(pIndex, -1);
+
             }
         }
 
-        int price = -1;
-        int winner = -1;
+        // Find the maximum bid and winning player
+        int price = -1;  // Maximum bid amount
+        int winner = -1;  // Index of the winning player
         for (int i = 0; i < auctionBids.size(); i++) {
             int bid = auctionBids.get(i);
-            if (bid != -1) {
+            if (bid > -1 && bid > price) {
                 price = bid;
                 winner = i;
-                break;
             }
         }
 
-        // Buy the property on behalf of this Player at the auction price.
-        gameState.ownership[board.indexOf(property.getName())] = winner;
-        incrementCash(winner, -price);
+        // Call buyProperty() for auction winner, with the winning bid as the price
+        buyProperty(winner, property, price);
 
-        // De-initialize relevant fields.
-        this.maxBid = -1;
+        // Null relevant fields
         this.auctionBids = null;
         this.biddingProperty = null;
 
@@ -916,7 +944,7 @@ public class Game implements OutputsWarnings {
     }
 
     /**
-     * Mark a Player's bankruptcy flag.
+     * Mark a Player's bankruptcy flag and output the event.
      * Bankrupt Players are handled like so:
      *      1) Bankrupt Players' turns are ignored in any & all cases.
      *      2) Bankrupt Players cannot trade.
@@ -925,6 +953,7 @@ public class Game implements OutputsWarnings {
      */
     private void bankruptPlayer(int playerIndex) {
         gameState.playerBankruptcy[playerIndex] = true;
+        players[playerIndex].output(playerUUIDs[playerIndex], players[playerIndex].getName() + " bankrupted!!");
     }
 
     ////////////////////////////////////////

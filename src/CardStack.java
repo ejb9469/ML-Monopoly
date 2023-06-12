@@ -27,7 +27,7 @@ public class CardStack {
         return card;
     }
 
-    public int getStackLoops() {
+    public int getNumStackLoops() {
         return stackLoops;
     }
 
