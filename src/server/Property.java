@@ -1,3 +1,5 @@
+package server;
+
 public class Property {
 
     public static final int BAIL_AMOUNT = 50;

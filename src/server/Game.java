@@ -1,3 +1,9 @@
+package server;
+
+import client.Communicator;
+import client.DebugPipe;
+import client.Player;
+
 import java.util.*;
 
 import static java.lang.System.exit;

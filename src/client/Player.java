@@ -1,3 +1,5 @@
+package client;
+
 // Player objects should have the following properties:
     // 1) `name` :: Name of the player
     // 2) `id` :: Player ID logically equivalent to `turn` counter in Board
@@ -16,6 +18,8 @@
     // 10) `performJailAction(action)` :: Request to perform a given jail-related GameAction.
             // Jail-related actions are: throw dice, pay bail, or use card.
 
+
+import server.*;
 
 import java.util.*;
 

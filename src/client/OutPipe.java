@@ -1,3 +1,7 @@
+package client;
+
+import server.PromptString;
+
 /**
  * Defines a class of classes which will output prompt data.
  */

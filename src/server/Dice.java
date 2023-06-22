@@ -1,3 +1,5 @@
+package server;
+
 import java.security.SecureRandom;
 public class Dice {
     private final SecureRandom random;

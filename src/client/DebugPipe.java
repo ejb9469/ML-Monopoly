@@ -1,3 +1,10 @@
+package client;
+
+import server.Game;
+import server.GameAction;
+import server.GameObject;
+import server.GameState;
+
 import java.util.UUID;
 
 /**

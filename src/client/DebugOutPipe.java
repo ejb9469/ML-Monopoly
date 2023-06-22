@@ -1,3 +1,7 @@
+package client;
+
+import server.PromptString;
+
 public class DebugOutPipe implements OutPipe {
 
     @Override

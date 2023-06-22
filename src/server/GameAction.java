@@ -1,3 +1,5 @@
+package server;
+
 public enum GameAction {
 
     MOVE_THROW_DICE,

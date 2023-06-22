@@ -1,3 +1,5 @@
+package server;
+
 public enum COLOR_SET {
 
     BROWN,

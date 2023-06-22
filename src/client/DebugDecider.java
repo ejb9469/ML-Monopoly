@@ -1,3 +1,10 @@
+package client;
+
+import server.GameAction;
+import server.GameObject;
+import server.GameState;
+import server.Property;
+
 import java.util.LinkedHashMap;
 import java.util.Scanner;
 import java.util.Set;

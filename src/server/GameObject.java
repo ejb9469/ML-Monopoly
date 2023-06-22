@@ -1,3 +1,7 @@
+package server;
+
+import client.Player;
+
 /**
  * Completely transparent wrapper class for subjects of GameAction-related calls, ...
  * ... such as Properties, Players, and number values.

@@ -1,3 +1,9 @@
+package client;
+
+import server.GameObject;
+import server.GameState;
+import server.GameAction;
+
 import java.util.UUID;
 
 // Intending to create two main implementations of this interface:
