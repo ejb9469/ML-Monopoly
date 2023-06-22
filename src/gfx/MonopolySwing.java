@@ -51,7 +51,7 @@ public class MonopolySwing {
         jPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 6, 6));
         jFrame.add(jPanel);
 
-        int propertyPanelSize = (int)(SIZE/12);
+        int propertyPanelSize = SIZE/12;
 
         //Random random = new Random();
 
