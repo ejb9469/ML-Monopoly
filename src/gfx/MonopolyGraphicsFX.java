@@ -1,18 +1,18 @@
 package gfx;
 
+import javafx.collections.ObservableList;
 import javafx.concurrent.*;
 import javafx.application.Application;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import server.Game;
+import server.GameState;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -38,18 +38,30 @@ public class MonopolyGraphicsFX extends Application {
             {Color.LIGHTGRAY, Color.CYAN, Color.CYAN, CHANCE_COLOR, Color.CYAN, Color.BLACK, Color.LIGHTGRAY, Color.rgb(139, 69, 19), COMMUNITY_COLOR, Color.rgb(139, 69, 19), Color.LIGHTGRAY}
     };
 
-    private final Game game = null;  // TODO: Un-nullify
+    public static final String[][] PROPERTY_NAME_MAP = new String[][] {
+            {"Free Parking", "Kentucky Avenue", "CHANCE", "Indiana Avenue", "Illinois Avenue", "B & O Railroad", "Atlantic Avenue", "Ventnor Avenue", "Water Works", "Marvin Gardens", "GO TO JAIL"},
+            {"New York Avenue", "Pacific Avenue"},
+            {"Tennessee Avenue", "North Carolina Avenue"},
+            {"COMMUNITY CHEST", "COMMUNITY CHEST"},
+            {"St. James Place", "Pennsylvania Avenue"},
+            {"Pennsylvania Railroad", "Short Line"},
+            {"Virginia Avenue", "CHANCE"},
+            {"States Avenue", "Park Place"},
+            {"Electric Company", "Luxury Tax"},
+            {"St. Charles Place", "Boardwalk"},
+            {"JAIL", "Connecticut Avenue", "Vermont Avenue", "CHANCE", "Oriental Avenue", "Reading Railroad", "Income Tax", "Baltic Avenue", "COMMUNITY CHEST", "Mediterranean Avenue", "GO"}
+    };
 
-    public static void main(String[] args) throws Exception {
+    private final Game game = null;  // TODO: Un-nullify
+    private static Group currentGUI = null;
+
+    public static void main(String[] args) {
         //new MonopolyGraphicsFX(null).run(args);
         run(args);
     }
 
-    /*public MonopolyGraphicsFX(Game game) {
-        this.game = game;
-    }*/
-
     public static void run(String[] args) {
+        currentGUI = new MonopolyGroup();
         launch(args);
     }
 
@@ -72,74 +84,27 @@ public class MonopolyGraphicsFX extends Application {
     }
 
     private Scene generateScene(Game game) throws FileNotFoundException {
-        Scene scene = new Scene(generateGroupFromGame(game), WINDOW_DIM, WINDOW_DIM);
+        Scene scene = new Scene(new MonopolyGroup(), WINDOW_DIM, WINDOW_DIM);
         scene.setFill(new ImagePattern(new Image(new FileInputStream("src/gfx/monopoly.jpg"))));
+        //generateGroupFromGame(game);
         return scene;
     }
 
     private Group generateGroupFromGame(Game game) {
 
-        Group group = new Group();
+        if (currentGUI == null)
+            currentGUI = new MonopolyGroup();
+        Group group = currentGUI;
 
-        int propertySize = WINDOW_DIM/13;
-        int propertyGap = propertySize/13;
-
-        for (int i = 0; i < 11; i++) {
-
-            // If first or last, run the whole row pass, do the rims otherwise
-            if (i % 10 == 0) {
-                for (int j = 0; j < 11; j++) {
-                    Rectangle rect = new Rectangle();
-                    rect.setHeight(propertySize);
-                    rect.setWidth(propertySize);
-                    int x = (propertySize * j) + (propertyGap * j) + (propertySize / 2) + (propertyGap * 3);
-                    rect.setX(x);
-                    int y;
-                    if (i == 0)
-                        y = (propertySize / 2) + (propertyGap * 3);
-                    else
-                        y = (propertySize * i) + (propertyGap * i) + ((propertySize / 2) + (propertyGap * 3));
-                    rect.setY(y);
-                    rect.setFill(PROPERTY_COLOR_MAP[i][j]);
-                    Text text = new Text(MonopolySwing.PROPERTY_NAME_MAP[i][j]);
-                    text.setX(x);
-                    if (i == 0)
-                        text.setY(y - (propertySize / (2*3)));
-                    else
-                        text.setY(y + (propertySize / 2 * 2.5f));
-                    text.setFont(new Font("Arial Bold", 10));
-                    text.setWrappingWidth(propertySize);
-                    text.setTextAlignment(TextAlignment.CENTER);
-                    group.getChildren().addAll(rect, text);
-                }
-            } else {
-                for (int j = 0; j < 2; j++) {
-                    Rectangle rect = new Rectangle();
-                    rect.setHeight(propertySize);
-                    rect.setWidth(propertySize);
-                    int x;
-                    if (j == 0)
-                        x = (propertySize / 2) + (propertyGap * 3);
-                    else
-                        x = (propertySize * 10) + (propertyGap * 10) + (propertySize / 2) + (propertyGap * 3);
-                    rect.setX(x);
-                    int y = (propertySize * i) + (propertyGap * i) + (propertySize / 2) + (propertyGap * 3);
-                    rect.setY(y);
-                    rect.setFill(PROPERTY_COLOR_MAP[i][j]);
-                    Text text = new Text(MonopolySwing.PROPERTY_NAME_MAP[i][j]);
-                    if (j == 0)
-                        text.setX(x + (propertySize));
-                    else
-                        text.setX(x - (propertySize));
-                    text.setY(y + (propertySize / 2));
-                    text.setFont(new Font("Arial Bold", 10));
-                    text.setWrappingWidth(propertySize);
-                    text.setTextAlignment(TextAlignment.CENTER);
-                    group.getChildren().addAll(rect, text);
-                }
-            }
+        //GameState gameState = game.getGameState();
+        int i = 0;
+        for (Node node : group.getChildren()) {
+            if (!(node instanceof Rectangle)) continue;
+            Rectangle rect = (Rectangle) node;
+            System.out.println("Pass #" + ++i + ": (" + rect.getX() + ", " + rect.getY() + ")");
         }
 
+        currentGUI = group;
         return group;
 
     }

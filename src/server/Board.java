@@ -61,9 +61,9 @@ public class Board {
         return squares;
     }
 
-    public int indexOf(String propertyName) {
-        for (int i = 0; i < squares.size(); i++) {
-            if (squares.get(i).getName().equals(propertyName))
+    public static int indexOf(String propertyName) {
+        for (int i = 0; i < SQUARES.size(); i++) {
+            if (SQUARES.get(i).getName().equals(propertyName))
                 return i;
         }
         return -1;
