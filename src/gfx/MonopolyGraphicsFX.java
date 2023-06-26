@@ -24,6 +24,13 @@ public class MonopolyGraphicsFX extends Application {
     public static final Color CHANCE_COLOR = Color.rgb(80, 150, 150);
     public static final Color COMMUNITY_COLOR = Color.rgb(200, 200, 120);
 
+    public static final Color[] PLAYER_SLOT_COLOR_MAP = new Color[] {
+            Color.DARKSLATEBLUE,
+            Color.PALEVIOLETRED,
+            Color.LAWNGREEN,
+            Color.YELLOWGREEN
+    };
+
     public static final Color[][] PROPERTY_COLOR_MAP = new Color[][] {
             {Color.LIGHTGRAY, Color.RED, CHANCE_COLOR, Color.RED, Color.RED, Color.BLACK, Color.YELLOW, Color.YELLOW, Color.PINK, Color.YELLOW, Color.LIGHTGRAY},
             {Color.ORANGE, Color.GREEN},
@@ -52,6 +59,49 @@ public class MonopolyGraphicsFX extends Application {
             {"JAIL", "Connecticut Avenue", "Vermont Avenue", "CHANCE", "Oriental Avenue", "Reading Railroad", "Income Tax", "Baltic Avenue", "COMMUNITY CHEST", "Mediterranean Avenue", "GO"}
     };
 
+    public static final int[] LOGIC_TO_GFX_PROP_INDEX_MAP = new int[] {
+            39,  // GO
+            38,  // Med. Ave
+            37,
+            36,
+            35,
+            34,  // Reading Railroad
+            33,
+            32,
+            31,
+            30,
+            29,  // JAIL
+            27,  // St. Charles Place
+            25,
+            23,
+            21,  // Virginia Ave
+            19,
+            17,
+            15,
+            13,
+            11,  // New York Ave
+            0,  // Free Parking
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,  // Go to Jail
+            12,
+            14,
+            16,
+            18,
+            20,  // Short Line
+            22,
+            24,
+            26,
+            28  // Boardwalk
+    };
+
     private final Game game = null;  // TODO: Un-nullify
     private static Group currentGUI = null;
 
@@ -69,6 +119,7 @@ public class MonopolyGraphicsFX extends Application {
     public void start(Stage stage) throws Exception {
 
         stage.setTitle("ML-Monopoly GUI");
+        stage.setResizable(false);
         stage.setScene(generateScene(this.game));
         stage.show();
 

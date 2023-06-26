@@ -1,7 +1,19 @@
-1) Fix remaining bugs with auction procedure.
-2) Figure out what we're doing with async variable. It's deprecated rn and maybe shouldn't be.
-3) Update warn() and its usages.
+GAME LOGIC:
 
-Also:
-*) Change wrapper requirements to make stdin debugging easier.
-   We don't really need to specify `wrapper.objProperty` in most cases.
+    1) Fix remaining bugs with auction procedure.
+    2) Figure out what we're doing with async variable. It's deprecated rn and maybe shouldn't be.
+    3) Update warn() and its usages.
+
+    Also:
+    *) Change wrapper requirements to make stdin debugging easier.
+        We don't really need to specify `wrapper.objProperty` in most cases.
+
+
+GRAPHICS:
+
+    1) We could render games after they happen via some Demo procedure that would record games in progress.
+        This would avoid the need to use Threads or Timelines entirely.
+        `Demo` could be the name of a class that does this.
+        TODO!!
+    2) Implement Player location, cash, etc.
+        Check `GameState` - every field should be shown graphically.
