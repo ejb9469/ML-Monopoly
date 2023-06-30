@@ -102,7 +102,7 @@ public class MonopolyGraphicsFX extends Application {
             28  // Boardwalk
     };
 
-    private final Game game = null;  // TODO: Un-nullify
+    private final Game game = new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null);  // TODO: Temporary!
     private static Group currentGUI = null;
 
     public static void main(String[] args) {
@@ -135,29 +135,10 @@ public class MonopolyGraphicsFX extends Application {
     }
 
     private Scene generateScene(Game game) throws FileNotFoundException {
-        Scene scene = new Scene(new MonopolyGroup(), WINDOW_DIM, WINDOW_DIM);
+        Scene scene = new Scene(new MonopolyGroup(game), WINDOW_DIM, WINDOW_DIM);
         scene.setFill(new ImagePattern(new Image(new FileInputStream("src/gfx/monopoly.jpg"))));
         //generateGroupFromGame(game);
         return scene;
-    }
-
-    private Group generateGroupFromGame(Game game) {
-
-        if (currentGUI == null)
-            currentGUI = new MonopolyGroup();
-        Group group = currentGUI;
-
-        //GameState gameState = game.getGameState();
-        int i = 0;
-        for (Node node : group.getChildren()) {
-            if (!(node instanceof Rectangle)) continue;
-            Rectangle rect = (Rectangle) node;
-            System.out.println("Pass #" + ++i + ": (" + rect.getX() + ", " + rect.getY() + ")");
-        }
-
-        currentGUI = group;
-        return group;
-
     }
 
 }

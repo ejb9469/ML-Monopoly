@@ -17,9 +17,9 @@ import static gfx.MonopolyGraphicsFX.PLAYER_SLOT_COLOR_MAP;
 public class MonopolyGroup extends Group {
 
     public static final Font TEXT_FONT = new Font("Arial Bold", 11);
-
-    public static final Font MORTGAGE_FONT = new Font("Helvetica", 14);
+    public static final Font MORTGAGE_TEXT_FONT = new Font("Helvetica", 10);
     public static final String MORTGAGE_TEXT = "MORTG";
+    public static final Font TOKEN_TEXT_FONT = new Font("Arial Bold", 16);
 
     private static final double ADJUSTMENT_CONST = 10f;
 
@@ -28,6 +28,8 @@ public class MonopolyGroup extends Group {
     private final Map<Rectangle, Text> propertyTexts = new HashMap<>();
     private final Map<Rectangle, Rectangle> ownershipRectangles = new HashMap<>();
     private final Map<Rectangle, Text> mortgageTexts = new HashMap<>();
+
+    private Map<Text, Rectangle> tokenPlacements = new HashMap<>();
 
     private GameState currentGameState;
 
@@ -46,6 +48,7 @@ public class MonopolyGroup extends Group {
      */
     public MonopolyGroup(Game game) {
         this();
+        currentGameState = game.getGameState();
         conformToGame(game);
     }
 
@@ -167,7 +170,7 @@ public class MonopolyGroup extends Group {
             Rectangle houseRect = new Rectangle();
             houseRect.setHeight(propertySize / 9f);
             houseRect.setWidth(propertySize / 9f);
-            houseRect.setX(x + ((k+.5f)*2) * (propertySize / 9f));
+            houseRect.setX(x + ((k+.5f)*2f) * (propertySize / 9f));
             houseRect.setY(y + (propertySize / 9f));
             houseRect.setFill(Color.LIMEGREEN);
             houseRect.setVisible(false);
@@ -207,14 +210,46 @@ public class MonopolyGroup extends Group {
         Text mortgageText = new Text(MORTGAGE_TEXT);
 
         mortgageText.setX(x);
-        mortgageText.setY(y + (propertySize / 2f));
-        mortgageText.setFont(MORTGAGE_FONT);
+        mortgageText.setY(y + (propertySize * .9f));
+        mortgageText.setFont(MORTGAGE_TEXT_FONT);
         mortgageText.setFill(Color.WHITE);
         mortgageText.setWrappingWidth(propertySize);
         mortgageText.setTextAlignment(TextAlignment.CENTER);
         mortgageText.setVisible(false);
 
         return mortgageText;
+
+    }
+
+    private void spawnTokens(int[] playerLocations) {
+
+        // Simply wipe the tokens map before performing operations.
+        // TODO: The better way to do this is to check if a token is already spawned, ...
+        //          ... and update its position instead if so.
+        tokenPlacements = new HashMap<>();
+
+        for (int i = 0; i < playerLocations.length; i++) {
+
+            int iT = LOGIC_TO_GFX_PROP_INDEX_MAP[playerLocations[i]];
+            Rectangle rect = rectangles.get(iT);
+            double x = rect.getX();
+            double y = rect.getY();
+            double propertySize = rect.getWidth();
+
+            Text token = new Text(""+(i+1));
+            token.setX(x + (propertySize / (playerLocations.length) * (i-1.5f)));
+            token.setY(y + (propertySize / 2f));
+            token.setFont(TOKEN_TEXT_FONT);
+            token.setFill(PLAYER_SLOT_COLOR_MAP[i]);
+            token.setWrappingWidth(propertySize);
+            token.setTextAlignment(TextAlignment.CENTER);
+            //token.setVisible(false);
+
+            tokenPlacements.put(token, rect);
+
+        }
+
+        this.getChildren().addAll(tokenPlacements.keySet());
 
     }
 
@@ -228,6 +263,9 @@ public class MonopolyGroup extends Group {
     private void conformToGame(Game game) {
 
         GameState gameState = game.getGameState();
+
+        // Tokens
+        spawnTokens(gameState.playerLocations);
 
         // Houses
         if (!Arrays.equals(gameState.houses, currentGameState.houses)) {
