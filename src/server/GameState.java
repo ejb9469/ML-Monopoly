@@ -13,7 +13,7 @@ public class GameState {
     public static final int MAXIMUM_GTFO_JAIL_CARDS = 2;
     public static final int STARTING_CASH = 1500;
 
-    final int numPlayers;
+    public final int numPlayers;
 
     public int turnIndicator;
     public final boolean[] mortgages;
