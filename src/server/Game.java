@@ -15,6 +15,7 @@ import static java.lang.System.exit;
  */
 public class Game implements OutputsWarnings {
 
+    public static final int STARTING_CASH = 1500;  // TODO: Implement this in game logic - currently only used in gfx
     public static final int MAX_TURNS = 100;
     public static final int MAX_DEPTH = 20;  // Used in requestAction()
     public static final int MAX_TRADES = 2;  // "per player per turn", currently unused

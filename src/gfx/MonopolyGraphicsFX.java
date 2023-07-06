@@ -1,18 +1,13 @@
 package gfx;
 
-import javafx.collections.ObservableList;
-import javafx.concurrent.*;
 import javafx.application.Application;
 import javafx.scene.Group;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import server.Game;
-import server.GameState;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -23,12 +18,17 @@ public class MonopolyGraphicsFX extends Application {
 
     public static final Color CHANCE_COLOR = Color.rgb(80, 150, 150);
     public static final Color COMMUNITY_COLOR = Color.rgb(200, 200, 120);
+    public static final Color BACKGROUND_COLOR = Color.rgb(30, 30, 60, .9f);
+    public static final Color OVERLAY_COLOR = Color.rgb(150, 150, 150, .4f);
+    public static final Color CARD_COLOR = Color.DARKORANGE;
 
     public static final Color[] PLAYER_SLOT_COLOR_MAP = new Color[] {
-            Color.DARKSLATEBLUE,
-            Color.PALEVIOLETRED,
+            Color.DEEPSKYBLUE,
+            Color.RED,
             Color.LAWNGREEN,
-            Color.YELLOWGREEN
+            Color.YELLOW,
+            Color.PURPLE,
+            Color.ORANGE
     };
 
     public static final Color[][] PROPERTY_COLOR_MAP = new Color[][] {

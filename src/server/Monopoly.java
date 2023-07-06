@@ -7,6 +7,8 @@ import gfx.MonopolyGraphicsFX;
  */
 public class Monopoly {
 
+    public static final int MAX_PLAYERS = 4;
+
     public static void main(String[] args) {
 
         // Graphics module
