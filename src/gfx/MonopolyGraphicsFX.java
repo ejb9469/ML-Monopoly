@@ -135,7 +135,7 @@ public class MonopolyGraphicsFX extends Application {
     }
 
     private Scene generateScene(Game game) throws FileNotFoundException {
-        Scene scene = new Scene(new MonopolyGroup(game), WINDOW_DIM, WINDOW_DIM);
+        Scene scene = new Scene(new MonopolyGroup(game.getGameState()), WINDOW_DIM, WINDOW_DIM);
         scene.setFill(new ImagePattern(new Image(new FileInputStream("src/gfx/monopoly.jpg"))));
         //generateGroupFromGame(game);
         return scene;

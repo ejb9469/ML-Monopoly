@@ -7,7 +7,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
-import server.Game;
 import server.GameState;
 
 import java.util.*;
@@ -50,11 +49,11 @@ public class MonopolyGroup extends Group {
 
     /**
      * Constructs a MonopolyGroup template, then uses it to express a Game.
-     * @param game Game to conform template to.
+     * @param gameState GameState to conform template to.
      */
-    public MonopolyGroup(Game game) {
+    public MonopolyGroup(GameState gameState) {
         this();
-        currentGameState = game.getGameState();
+        currentGameState = gameState;
         conformToGame(currentGameState);
     }
 
@@ -191,7 +190,7 @@ public class MonopolyGroup extends Group {
     /**
      * Conforms the constructed template to a specified Game object.
      * Sets the `currentGameState` field in the process.
-     * Called in Game-specific constructors and as an update procedure.
+     * Called in GameState-specific constructors and as an update procedure.
      * Will necessarily be performed after the execution of `initialize()`.
      * @param gameState GameState object to conform template to.
      */
@@ -420,7 +419,7 @@ public class MonopolyGroup extends Group {
             playerRect.setFill(OVERLAY_COLOR);
             playerRects[i] = playerRect;
 
-            Text playerCashText = new Text("$" + Game.STARTING_CASH);
+            Text playerCashText = new Text("$" + GameState.STARTING_CASH);
             playerCashText.setX(x + ADJUSTMENT_CONST);
             playerCashText.setY(yAdj + (heightAdj/2f));
             playerCashText.setWrappingWidth(x / 4f);
