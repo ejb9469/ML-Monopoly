@@ -1,7 +1,7 @@
 package gfx;
 
 import javafx.application.Application;
-import javafx.scene.Group;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
@@ -11,8 +11,12 @@ import server.Game;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MonopolyGraphicsFX extends Application {
+
+    public static final int FRAMES_PER_SECOND = 60;
 
     public static final int WINDOW_DIM = 1000;
 
@@ -103,7 +107,6 @@ public class MonopolyGraphicsFX extends Application {
     };
 
     private final Game game = new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null);  // TODO: Temporary!
-    private static Group currentGUI = null;
 
     public static void main(String[] args) {
         //new MonopolyGraphicsFX(null).run(args);
@@ -111,32 +114,42 @@ public class MonopolyGraphicsFX extends Application {
     }
 
     public static void run(String[] args) {
-        currentGUI = new MonopolyGroup();
         launch(args);
     }
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
 
         stage.setTitle("ML-Monopoly GUI");
         stage.setResizable(false);
-        stage.setScene(generateScene(this.game));
+        stage.setScene(generateScene());
         stage.show();
 
-        /*Thread taskThread = new Thread(new Runnable() {
+
+        // Animation \\
+        Thread taskThread = new Thread(game::gameLoop);
+        taskThread.start();
+
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-
+                Platform.runLater(() -> {
+                    stage.setScene(generateScene());
+                    //stage.show();
+                });
             }
-        });
-
-        taskThread.start();*/  // TODO: Implement this once animation is necessary
+        }, 0, 1000/FRAMES_PER_SECOND);
 
     }
 
-    private Scene generateScene(Game game) throws FileNotFoundException {
+    private Scene generateScene() {
         Scene scene = new Scene(new MonopolyGroup(game.getGameState()), WINDOW_DIM, WINDOW_DIM);
-        scene.setFill(new ImagePattern(new Image(new FileInputStream("src/gfx/monopoly.jpg"))));
+        try {
+            scene.setFill(new ImagePattern(new Image(new FileInputStream("src/gfx/monopoly.jpg"))));
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+        }
         //generateGroupFromGame(game);
         return scene;
     }

@@ -69,7 +69,7 @@ public class Game implements OutputsWarnings {
     }
 
     // Debug functions ////////////////////////////////
-    private void gameLoop() {
+    public void gameLoop() {  // TODO: Temporarily public!
         while (!gameOverFlag) {
             depth = 0;
             endTurn();

@@ -53,7 +53,7 @@ public class GameState {
 
     // Called when constructing a new / starting GameState.
     public GameState(int numPlayers) {
-        this(numPlayers, numPlayers, new boolean[Board.SQUARES.size()], new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], new boolean[numPlayers], 32, 12, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
+        this(numPlayers, -1, new boolean[Board.SQUARES.size()], new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], new boolean[numPlayers], 32, 12, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
         initializeStartingValues();
     }
 

@@ -17,7 +17,7 @@ import static server.Monopoly.MAX_PLAYERS;
 public class MonopolyGroup extends Group {
 
     public static final Font TEXT_FONT = new Font("Arial Bold", 11);
-    public static final Font MORTGAGE_TEXT_FONT = new Font("Helvetica", 10);
+    public static final Font MORTGAGE_TEXT_FONT = new Font("Helvetica", 11);
     public static final Font TOKEN_TEXT_FONT = new Font("Arial Bold", 16);
     public static final Font TURN_INDICATOR_FONT = new Font("Arial Bold", 36);
 
@@ -36,7 +36,7 @@ public class MonopolyGroup extends Group {
 
     private Map<Text, Rectangle> tokenPlacements = new HashMap<>();
 
-    private GameState currentGameState;
+    public GameState currentGameState;
 
     /**
      * Constructs a blank MonopolyGroup (a template).
@@ -54,7 +54,7 @@ public class MonopolyGroup extends Group {
     public MonopolyGroup(GameState gameState) {
         this();
         currentGameState = gameState;
-        conformToGame(currentGameState);
+        conformToGameState(gameState);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -196,53 +196,67 @@ public class MonopolyGroup extends Group {
      */
     // This method will error if initialize() isn't called first,
     // ... but initialize() is called in all constructors.
-    private void conformToGame(GameState gameState) {
+    public void conformToGameState(GameState gameState) {
 
         // Tokens
         spawnTokens(gameState.playerLocations);
 
         // Turn indicator
-        if (gameState.turnIndicator != currentGameState.turnIndicator) {
+        //if (gameState.turnIndicator != currentGameState.turnIndicator) {
 
-            turnIndicatorText.get(0).setText("Turn: Player" + (gameState.turnIndicator + 1));
+            this.getChildren().remove(turnIndicatorText.get(0));
 
-        }
+            turnIndicatorText.get(0).setText("Turn: Player " + (gameState.turnIndicator + 1));
+
+            this.getChildren().add(turnIndicatorText.get(0));
+
+        //}
 
         // Cash
-        if (!Arrays.equals(gameState.cash, currentGameState.cash)) {
+        //if (!Arrays.equals(gameState.cash, currentGameState.cash)) {
 
             for (int i = 0; i < gameState.cash.length; i++) {
+
+                this.getChildren().removeAll(playerCashTexts);
 
                 if (gameState.playerBankruptcy[i])
                     playerCashTexts.get(i).setText("BANKRUPT");
                 else
                     playerCashTexts.get(i).setText("$" + gameState.cash[i]);
 
+                this.getChildren().addAll(playerCashTexts);
+
             }
 
-        }
+        //}
 
         // GTFO Jail Cards
-        if (!Arrays.equals(gameState.gtfoJailCards, currentGameState.gtfoJailCards)) {
+        //if (!Arrays.equals(gameState.gtfoJailCards, currentGameState.gtfoJailCards)) {
 
             for (int i = 0; i < gameState.gtfoJailCards.length; i++) {
 
+                this.getChildren().remove(gtfoJailTexts.get(i));
+
                 gtfoJailTexts.get(i).setText(" G".repeat(gameState.gtfoJailCards[i]));
+
+                this.getChildren().add(gtfoJailTexts.get(i));
 
             }
 
-        }
+        //}
 
         // Houses
-        if (!Arrays.equals(gameState.houses, currentGameState.houses)) {
+        //if (!Arrays.equals(gameState.houses, currentGameState.houses)) {
 
             for (int i = 0; i < gameState.houses.length; i++) {
 
-                if (gameState.houses[i] == currentGameState.houses[i]) continue;
+                //if (gameState.houses[i] == currentGameState.houses[i]) continue;
 
                 int iT = LOGIC_TO_GFX_PROP_INDEX_MAP[i];  // "i, Translated"
                 Rectangle propRect = rectangles.get(iT);
                 Rectangle[] houseRects = houseRectangles.get(propRect);
+
+                this.getChildren().removeAll(houseRects);
 
                 // Removing a preexisting hotel, house count indeterminate
                 if (currentGameState.houses[i] == 5) {
@@ -263,51 +277,61 @@ public class MonopolyGroup extends Group {
                         houseRects[j].setVisible(false);
                 }
 
+                this.getChildren().addAll(houseRects);
+
             }
 
-        }
+        //}
 
         // Mortgages
-        if (!Arrays.equals(gameState.mortgages, currentGameState.mortgages)) {
+        //if (!Arrays.equals(gameState.mortgages, currentGameState.mortgages)) {
 
             for (int i = 0; i < gameState.mortgages.length; i++) {
 
-                if (gameState.mortgages[i] == currentGameState.mortgages[i]) continue;
+                //if (gameState.mortgages[i] == currentGameState.mortgages[i]) continue;
 
                 int iT = LOGIC_TO_GFX_PROP_INDEX_MAP[i];
                 Rectangle propRect = rectangles.get(iT);
                 Text mortgageText = mortgageTexts.get(propRect);
 
+                this.getChildren().remove(mortgageText);
+
                 // Mortgage text should be visible if the Property is mortgaged, invisible otherwise
                 mortgageText.setVisible(gameState.mortgages[i]);
 
+                this.getChildren().add(mortgageText);
+
             }
 
-        }
+        //}
 
         // Ownership
-        if (!Arrays.equals(gameState.ownership, currentGameState.ownership)) {
+        //if (!Arrays.equals(gameState.ownership, currentGameState.ownership)) {
 
             for (int i = 0; i < gameState.ownership.length; i++) {
 
-                if (gameState.ownership[i] == currentGameState.ownership[i]) continue;
+                //if (gameState.ownership[i] == currentGameState.ownership[i]) continue;
 
                 int iT = LOGIC_TO_GFX_PROP_INDEX_MAP[i];
                 Rectangle propRect = rectangles.get(iT);
                 Rectangle ownershipRect = ownershipRectangles.get(propRect);
 
+                this.getChildren().remove(ownershipRect);
+
                 // Banner should be invisible if nobody owns the Property,
                 // ... and should be visible & of the owner's color otherwise.
-                if (gameState.ownership[i] == 0) {
+                if (gameState.ownership[i] == -1) {
                     ownershipRect.setVisible(false);
                 } else {
                     ownershipRect.setVisible(true);
-                    ownershipRect.setFill(PLAYER_SLOT_COLOR_MAP[gameState.ownership[i]-1]);
+                    ownershipRect.setFill(PLAYER_SLOT_COLOR_MAP[gameState.ownership[i]]);
                 }
+
+                this.getChildren().add(ownershipRect);
 
             }
 
-        }
+        //}
 
         // Update `currentGameState`
         this.currentGameState = gameState;
@@ -377,7 +401,7 @@ public class MonopolyGroup extends Group {
         mortgageText.setX(x);
         mortgageText.setY(y + (propertySize * .9f));
         mortgageText.setFont(MORTGAGE_TEXT_FONT);
-        mortgageText.setFill(Color.WHITE);
+        mortgageText.setFill(Color.DARKGRAY);
         mortgageText.setWrappingWidth(propertySize);
         mortgageText.setTextAlignment(TextAlignment.CENTER);
         mortgageText.setVisible(false);
