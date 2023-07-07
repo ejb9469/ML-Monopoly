@@ -196,6 +196,8 @@ public class MonopolyGroup extends Group {
      */
     // This method will error if initialize() isn't called first,
     // ... but initialize() is called in all constructors.
+    // TODO: Un-comment if statements, but store `currentGameState` somewhere down the callstack and pass it in here,
+    //          rather than storing it as a field.
     public void conformToGameState(GameState gameState) {
 
         // Tokens
