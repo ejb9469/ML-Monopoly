@@ -45,9 +45,8 @@ public class CardStack {
     public String toString() {
         try {
             return stack.get(0).toString();
-        } catch (ArrayIndexOutOfBoundsException ex) {
-            ex.printStackTrace();
-            return super.toString();
+        } catch (IndexOutOfBoundsException ex) {
+            return drawCard().toString();
         }
     }
 

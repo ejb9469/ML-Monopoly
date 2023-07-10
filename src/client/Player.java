@@ -167,7 +167,7 @@ public class Player implements OutputsWarnings {
         communicator.requestAction(action, uuid, gameObj);
     }
     private void sellHouse(Property property) {
-        GameAction action = GameAction.HOUSE_BUILD;
+        GameAction action = GameAction.HOUSE_SELL;
         GameObject gameObj = new GameObject();
         gameObj.objProperty = property;
         communicator.requestAction(action, uuid, gameObj);

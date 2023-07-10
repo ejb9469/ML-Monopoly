@@ -249,7 +249,7 @@ public class Game implements OutputsWarnings {
                 ) break;
 
                 // Populate Property set index list
-                List<Property> propertySet = board.getSquaresOfColorSet(wrapper.objProperty.color);
+                List<Property> propertySet = Board.getSquaresOfColorSet(wrapper.objProperty.color);
                 int[] propertySetIndices = new int[propertySet.size()];
                 for (int i = 0; i < propertySetIndices.length; i++)
                     propertySetIndices[i] = board.getSquares().indexOf(propertySet.get(i));
@@ -289,7 +289,7 @@ public class Game implements OutputsWarnings {
                 ) break;
 
                 // Populate Property set index list
-                List<Property> propertySet = board.getSquaresOfColorSet(wrapper.objProperty.color);
+                List<Property> propertySet = Board.getSquaresOfColorSet(wrapper.objProperty.color);
                 int[] propertySetIndices = new int[propertySet.size()];
                 for (int i = 0; i < propertySetIndices.length; i++)
                     propertySetIndices[i] = board.getSquares().indexOf(propertySet.get(i));
@@ -450,7 +450,8 @@ public class Game implements OutputsWarnings {
     private void moveTokenBackwards(int playerIndex, int spaces, double rentMultiplier) {
 
         int currentLocation = gameState.playerLocations[playerIndex];
-        int landingLocation = (currentLocation - spaces) % board.getSquares().size();
+        int landingLocation = (currentLocation - spaces + board.getSquares().size()) % board.getSquares().size();
+        gameState.playerLocations[playerIndex] = landingLocation;
 
         handleMoveLanding(playerIndex, spaces, landingLocation, rentMultiplier);
 
@@ -523,23 +524,23 @@ public class Game implements OutputsWarnings {
 
             // Chance \\
             case ADVANCE_TO_BOARDWALK -> {
-                int boardwalkIndex = board.indexOf("Boardwalk");
-                int distanceToMove = (boardwalkIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int boardwalkIndex = Board.indexOf("Boardwalk");
+                int distanceToMove = (boardwalkIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_GO, ADVANCE_TO_GO_2 -> {
-                int goIndex = board.indexOf("GO");
-                int distanceToMove = (goIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int goIndex = Board.indexOf("GO");
+                int distanceToMove = (goIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_ILLINOIS -> {
-                int illinoisIndex = board.indexOf("Illinois Avenue");
-                int distanceToMove = (illinoisIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int illinoisIndex = Board.indexOf("Illinois Avenue");
+                int distanceToMove = (illinoisIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_ST_CHARLES -> {
-                int charlesIndex = board.indexOf("St. Charles Place");
-                int distanceToMove = (charlesIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int charlesIndex = Board.indexOf("St. Charles Place");
+                int distanceToMove = (charlesIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_NEAREST_RAILROAD, ADVANCE_TO_NEAREST_RAILROAD_2 -> {
@@ -550,7 +551,7 @@ public class Game implements OutputsWarnings {
                         break;
                     }
                 }
-                int distanceToMove = (railroadIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int distanceToMove = (railroadIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove, 2.0);
             }
             case ADVANCE_TO_NEAREST_UTILITY -> {
@@ -582,7 +583,7 @@ public class Game implements OutputsWarnings {
                     utilityRentMultiplier = 1.0;
 
                 // Calculate distance to move and move token forwards
-                int distanceToMove = (utilityIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int distanceToMove = (utilityIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove, utilityRentMultiplier);
 
             }
@@ -606,8 +607,8 @@ public class Game implements OutputsWarnings {
                 incrementCash(playerIndex, -15);
             }
             case ADVANCE_TO_READING_RAILROAD -> {
-                int readingIndex = board.indexOf("Reading Railroad");
-                int distanceToMove = (readingIndex - gameState.playerLocations[playerIndex]) % board.getSquares().size();
+                int readingIndex = Board.indexOf("Reading Railroad");
+                int distanceToMove = (readingIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
                 moveToken(playerIndex, distanceToMove);
             }
             case PAY_50_EACH_PLAYER -> {
@@ -667,15 +668,19 @@ public class Game implements OutputsWarnings {
      * B) Proceed with the next Player's turn.
      */
     private void endTurn() {
-        if (gameState.turnIndicator == players.length)
+        if (gameState.turnIndicator == players.length - 1)
             currentTurn++;
+        if (gameState.turnIndicator != -1)
+            gameState.timesRolled[gameState.turnIndicator] = 0;
         gameState.turnIndicator = (gameState.turnIndicator + 1) % players.length;
-        gameState.timesRolled[gameState.turnIndicator] = 0;
         currentLegalActions = generateLegalActions(0);  // resets to start-of-turn actions
         if (isGameOver()) {
             endGame(0);
         } else {
-            signalTurn(0, gameState.turnIndicator, "It's your turn! " + PROMPT_DEFAULT);
+            if (gameState.jailedPlayers[gameState.turnIndicator])
+                signalTurn(3, gameState.turnIndicator, "YOU ARE IN JAIL!\nIt's your turn! " + PROMPT_DEFAULT);
+            else
+                signalTurn(0, gameState.turnIndicator, "It's your turn! " + PROMPT_DEFAULT);
         }
     }
 
@@ -709,7 +714,7 @@ public class Game implements OutputsWarnings {
      */
     private void buyProperty(int playerIndex, Property property) {
         incrementCash(playerIndex, -property.marketPrice);  // Take cash out of account *first*!
-        gameState.ownership[board.indexOf(property.getName())] = playerIndex;
+        gameState.ownership[Board.indexOf(property.getName())] = playerIndex;
     }
 
     /**
@@ -718,7 +723,7 @@ public class Game implements OutputsWarnings {
      */
     private void buyProperty(int playerIndex, Property property, int customCost) {
         incrementCash(playerIndex, -customCost);
-        gameState.ownership[board.indexOf(property.getName())] = playerIndex;
+        gameState.ownership[Board.indexOf(property.getName())] = playerIndex;
     }
 
     /**
@@ -798,7 +803,7 @@ public class Game implements OutputsWarnings {
      * Pre-req: Passed all checks.
      */
     private void mortgageProperty(Property property) {
-        int propertyIndex = board.indexOf(property.getName());
+        int propertyIndex = Board.indexOf(property.getName());
         int playerIndex = gameState.ownership[propertyIndex];
         gameState.mortgages[propertyIndex] = true;
         incrementCash(playerIndex, (int)(property.marketPrice * property.mortgageDivisor));
@@ -809,7 +814,7 @@ public class Game implements OutputsWarnings {
      * Pre-req: Passed all checks.
      */
     private void unmortgageProperty(Property property) {
-        int propertyIndex = board.indexOf(property.getName());
+        int propertyIndex = Board.indexOf(property.getName());
         int playerIndex = gameState.ownership[propertyIndex];
         gameState.mortgages[propertyIndex] = false;
         incrementCash(playerIndex, -((int)(property.marketPrice * property.mortgageDivisor * Property.UNMORTGAGE_INTEREST)));
@@ -820,17 +825,20 @@ public class Game implements OutputsWarnings {
      * Pre-req: Passed all checks.
      */
     private void buyHouse(Property property, boolean hotel) {
-        int propertyIndex = board.indexOf(property.getName());
+
+        int propertyIndex = Board.indexOf(property.getName());
         int playerIndex = gameState.ownership[propertyIndex];
+
+        gameState.houses[propertyIndex]++;
         if (hotel) {
-            gameState.houses[propertyIndex]++;
             gameState.remainingHouses += 4;
             gameState.remainingHotels--;
         } else {
-            gameState.houses[propertyIndex]++;
             gameState.remainingHouses--;
         }
+
         incrementCash(playerIndex, -property.baseHouseCost);
+
     }
 
     /**
@@ -838,17 +846,20 @@ public class Game implements OutputsWarnings {
      * Pre-req: Passed all checks.
      */
     private void sellHouse(Property property, boolean hotel) {
-        int propertyIndex = board.indexOf(property.getName());
+
+        int propertyIndex = Board.indexOf(property.getName());
         int playerIndex = gameState.ownership[propertyIndex];
+
+        gameState.houses[propertyIndex]--;
         if (hotel) {
-            gameState.houses[propertyIndex]--;
             gameState.remainingHouses -= 4;
             gameState.remainingHotels++;
         } else {
-            gameState.houses[propertyIndex]--;
             gameState.remainingHouses++;
         }
+
         incrementCash(playerIndex, (int)(property.baseHouseCost * property.houseSellDivisor));
+
     }
 
     /**
@@ -934,7 +945,7 @@ public class Game implements OutputsWarnings {
         gameState.playerLocations[playerIndex] = jailIndex;
     }
     private void jailPlayer(int playerIndex) {
-        jailPlayer(playerIndex, board.indexOf("Jail"));
+        jailPlayer(playerIndex, Board.indexOf("Jail"));
     }
 
     /**

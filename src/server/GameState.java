@@ -2,6 +2,7 @@ package server;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Contains the complete state of a Game to be easily consumed by Agents.
@@ -12,6 +13,8 @@ public class GameState {
 
     public static final int MAXIMUM_GTFO_JAIL_CARDS = 2;
     public static final int STARTING_CASH = 1500;
+    public static final int STARTING_HOUSES = 32;
+    public static final int STARTING_HOTELS = 12;
 
     public final int numPlayers;
 
@@ -53,7 +56,7 @@ public class GameState {
 
     // Called when constructing a new / starting GameState.
     public GameState(int numPlayers) {
-        this(numPlayers, -1, new boolean[Board.SQUARES.size()], new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], new boolean[numPlayers], 32, 12, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
+        this(numPlayers, -1, new boolean[Board.SQUARES.size()], new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], new boolean[numPlayers], STARTING_HOUSES, STARTING_HOTELS, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
         initializeStartingValues();
     }
 
@@ -69,6 +72,29 @@ public class GameState {
     private void initializeStartingValues() {
         Arrays.fill(this.cash, STARTING_CASH);
         Arrays.fill(this.ownership, -1);
+    }
+
+    public boolean propertyIsMonopoly(int propertyIndex) {
+
+        if (ownership[propertyIndex] == -1) return false;
+
+        Property property = Board.SQUARES.get(propertyIndex);
+
+        if (property.isFunctionalOnly()) return false;
+
+        List<Integer> sameColorIndexes = Board.getIndexesOfColorSet(property.color);
+
+        boolean monopoly = true;
+        for (int pIndex : sameColorIndexes) {
+            if (propertyIndex == pIndex) continue;
+            if (ownership[pIndex] != ownership[propertyIndex]) {
+                monopoly = false;
+                break;
+            }
+        }
+
+        return monopoly;
+
     }
 
     @Override

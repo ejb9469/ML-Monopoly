@@ -81,7 +81,7 @@ public class Property {
         switch (color) {
             case RAILROAD -> {
                 int railroadsOwned = 1;
-                int pIndex = board.indexOf(this.name);
+                int pIndex = Board.indexOf(this.name);
                 for (int i = 0; i < board.getSquares().size(); i++) {
                     Property property = board.getSquares().get(i);
                     if (i == pIndex || property.color != COLOR_SET.RAILROAD) continue;
@@ -92,7 +92,7 @@ public class Property {
             }
             case UTILITY -> {
                 boolean multipleUtilities = false;
-                int pIndex = board.indexOf(this.name);
+                int pIndex = Board.indexOf(this.name);
                 for (int i = 0; i < board.getSquares().size(); i++) {
                     Property property = board.getSquares().get(i);
                     if (i == pIndex || property.color != COLOR_SET.UTILITY) continue;
@@ -107,7 +107,16 @@ public class Property {
                     return (roll * 4);
             }
             default -> {
-                return rentTable[gameState.houses[board.indexOf(this.name)]];
+                int pIndex = Board.indexOf(this.name);
+                boolean isMonopoly = gameState.propertyIsMonopoly(pIndex);
+                if (isMonopoly) {
+                    if (gameState.houses[pIndex] > 0)
+                        return rentTable[gameState.houses[pIndex]];
+                    else  // Double the base rent on unimproved Monopolies
+                        return baseRent * 2;
+                } else {
+                    return baseRent;
+                }
             }
         }
     }

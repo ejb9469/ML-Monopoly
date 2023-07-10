@@ -25,12 +25,13 @@ public class MonopolyGraphicsFX extends Application {
     public static final Color BACKGROUND_COLOR = Color.rgb(30, 30, 60, .9f);
     public static final Color OVERLAY_COLOR = Color.rgb(150, 150, 150, .4f);
     public static final Color CARD_COLOR = Color.DARKORANGE;
+    public static final Color OFF_YELLOW = Color.rgb(250, 250, 50);
 
     public static final Color[] PLAYER_SLOT_COLOR_MAP = new Color[] {
             Color.DEEPSKYBLUE,
-            Color.RED,
-            Color.LAWNGREEN,
-            Color.YELLOW,
+            Color.INDIANRED,
+            Color.GREENYELLOW,
+            MonopolyGraphicsFX.OFF_YELLOW,
             Color.PURPLE,
             Color.ORANGE
     };

@@ -49,6 +49,7 @@ public class Board {
             new Property("Boardwalk", COLOR_SET.DARK_BLUE, 400, .5, 50, 200, .5, new int[]{200, 600, 1400, 1700, 2000})
     );
 
+    // TODO: Phase out instance form of this class entirely || 07-08-23
     private final List<Property> squares = new ArrayList<>(SQUARES);
 
     protected final Game parentGame;
@@ -62,20 +63,39 @@ public class Board {
     }
 
     public static int indexOf(String propertyName) {
+
         for (int i = 0; i < SQUARES.size(); i++) {
             if (SQUARES.get(i).getName().equals(propertyName))
                 return i;
         }
         return -1;
+
     }
 
-    public List<Property> getSquaresOfColorSet(COLOR_SET colorSet) {
-        List<Property> out = new ArrayList<>();
-        for (Property property : squares) {
+    public static List<Property> getSquaresOfColorSet(COLOR_SET colorSet) {
+
+        List<Property> squares = new ArrayList<>();
+
+        for (Property property : SQUARES) {
             if (property.color == colorSet)
-                out.add(property);
+                squares.add(property);
         }
-        return out;
+
+        return squares;
+
+    }
+
+    public static List<Integer> getIndexesOfColorSet(COLOR_SET colorSet) {
+
+        List<Integer> indexes = new ArrayList<>();
+
+        for (Property property : SQUARES) {
+            if (property.color == colorSet)
+                indexes.add(SQUARES.indexOf(property));
+        }
+
+        return indexes;
+
     }
 
 }

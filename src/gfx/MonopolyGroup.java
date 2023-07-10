@@ -217,18 +217,18 @@ public class MonopolyGroup extends Group {
         // Cash
         //if (!Arrays.equals(gameState.cash, currentGameState.cash)) {
 
-            for (int i = 0; i < gameState.cash.length; i++) {
+            this.getChildren().removeAll(playerCashTexts);
 
-                this.getChildren().removeAll(playerCashTexts);
+            for (int i = 0; i < gameState.cash.length; i++) {
 
                 if (gameState.playerBankruptcy[i])
                     playerCashTexts.get(i).setText("BANKRUPT");
                 else
                     playerCashTexts.get(i).setText("$" + gameState.cash[i]);
 
-                this.getChildren().addAll(playerCashTexts);
-
             }
+
+            this.getChildren().addAll(playerCashTexts);
 
         //}
 
