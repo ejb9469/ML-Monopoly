@@ -16,6 +16,7 @@ import static java.lang.System.exit;
 public class Game implements OutputsWarnings {
 
     public static final int MAX_TURNS = 100;
+    public static final int MAX_ACTIONS = 10;
     public static final int MAX_DEPTH = 20;  // Used in requestAction()
     public static final int MAX_TRADES = 2;  // "per player per turn", currently unused
     public static final int STARTING_BID_AMOUNT = 10;
@@ -25,6 +26,7 @@ public class Game implements OutputsWarnings {
     private final int id = ID_INCREMENT++;
 
     private boolean gameOverFlag = false;
+    private boolean endTurnFlag = false;
     private int currentTurn = 0;
     private int depth = 0;  // Used in requestAction()
 
@@ -72,7 +74,7 @@ public class Game implements OutputsWarnings {
     public void gameLoop() {  // TODO: Temporarily public!
         while (!gameOverFlag) {
             depth = 0;
-            endTurn();
+            processTurn();
         }
     }
     public static void main(String[] args) {
@@ -115,6 +117,7 @@ public class Game implements OutputsWarnings {
         //      This can be used respective or irrespective of context,
         //      e.g. Mortgaging and unmortgaging have no theoretical limit,
         //           but throwing move dice can only be repeated when rolling doubles.
+        // TODO: Currently deprecated! 07-11-23
         boolean doNotRemoveAction = false;
 
         // Handle action
@@ -133,6 +136,7 @@ public class Game implements OutputsWarnings {
                 int toss = dice.toss();
                 gameState.timesRolled[keyIndex]++;
 
+                boolean allowAdditionalMove = false;
                 // Handle doubles
                 if (dice.doubles) {
                     if (gameState.timesRolled[keyIndex] >= 3) {
@@ -142,14 +146,15 @@ public class Game implements OutputsWarnings {
                     } else {
                         // Less than three doubles in a row
                         doNotRemoveAction = true;  // Quick, add it back!
+                        allowAdditionalMove = true;
                     }
-                } else if (gameState.timesRolled[keyIndex] > 1) {
-                    // Double moving without double dice. Sad!
-                    break;  // Do not proceed with the move
                 }
 
                 // Move token if passed checks
                 moveToken(keyIndex, toss);
+
+                if (allowAdditionalMove && !gameState.jailedPlayers[keyIndex] && !gameState.playerBankruptcy[keyIndex])
+                    signalTurn(7, keyIndex, "You rolled doubles last turn!\n" + PROMPT_DEFAULT);
 
             }
             case TRADE_OFFER -> {}  // Trading implemented later!
@@ -349,6 +354,7 @@ public class Game implements OutputsWarnings {
                 ) break;
 
                 freePlayer(keyIndex, 1);
+                signalTurn(0, keyIndex);
 
             }
             case JAIL_USE_CARD -> {
@@ -361,12 +367,27 @@ public class Game implements OutputsWarnings {
                 ) break;
 
                 freePlayer(keyIndex, 2);
+                signalTurn(0, keyIndex);
 
             }
-            default -> {  // END TURN || Note: this covers 'graceful' turn ends too.
-                //endTurn();
-                return;  // No more successive actions
+            case DECLARE_BANKRUPTCY -> {
+
+                // Perform check on Player turn
+                if (!isPlayerTurn) break;
+
+                bankruptPlayer(keyIndex);
+
+                endTurnFlag = true;
+                return;
+
             }
+            case END_TURN -> {
+
+                endTurnFlag = true;
+                return;
+
+            }
+
         }
 
         // Remove performed action from set of legal actions.
@@ -431,7 +452,7 @@ public class Game implements OutputsWarnings {
         int currentLocation = gameState.playerLocations[playerIndex];
         int landingLocation = (currentLocation + spaces) % board.getSquares().size();
         gameState.playerLocations[playerIndex] = landingLocation;
-        if (landingLocation <= currentLocation || spaces >= board.getSquares().size())  // GO procedure
+        if (landingLocation < currentLocation || spaces >= board.getSquares().size())  // GO procedure
             incrementCash(playerIndex, 200);
 
         handleMoveLanding(playerIndex, spaces, landingLocation, rentMultiplier);
@@ -476,10 +497,7 @@ public class Game implements OutputsWarnings {
                     performCardAction(playerIndex, gameState.chance.drawCard());
                 }
                 case "Income Tax" -> {
-                    if (!incrementCash(playerIndex, -200)) {
-                        // Failed to pay. Bankrupted.
-                        // TODO: Is there anything to do at this point?
-                    }
+                    incrementCash(playerIndex, -200);
                 }
                 case "Luxury Tax" -> {
                     incrementCash(playerIndex, -75);
@@ -663,25 +681,66 @@ public class Game implements OutputsWarnings {
     }
 
     /**
-     * End the Player's turn and either...
+     * End the last Player's turn and either...
      * A) End the game if we've reached any end condition.
      * B) Proceed with the next Player's turn.
      */
-    private void endTurn() {
+    private void processTurn() {
+
+        // Increment global turn counter
         if (gameState.turnIndicator == players.length - 1)
             currentTurn++;
+
+        // Reset timesRolled values (checks for doubles, etc.)
         if (gameState.turnIndicator != -1)
             gameState.timesRolled[gameState.turnIndicator] = 0;
+
+        // Increment turnIndicator, looping around if needed
         gameState.turnIndicator = (gameState.turnIndicator + 1) % players.length;
+
         currentLegalActions = generateLegalActions(0);  // resets to start-of-turn actions
+
         if (isGameOver()) {
             endGame(0);
-        } else {
-            if (gameState.jailedPlayers[gameState.turnIndicator])
-                signalTurn(3, gameState.turnIndicator, "YOU ARE IN JAIL!\nIt's your turn! " + PROMPT_DEFAULT);
-            else
-                signalTurn(0, gameState.turnIndicator, "It's your turn! " + PROMPT_DEFAULT);
         }
+        // Signal the next Player's turn if not bankrupt, otherwise skip it
+        else if (!gameState.playerBankruptcy[gameState.turnIndicator]) {
+
+            // Pre-move actions
+            int consecutiveActions = 0;
+            while (!endTurnFlag && consecutiveActions < MAX_ACTIONS) {
+                signalTurn(2, gameState.turnIndicator, "Would you like to perform actions before moving?\nInput END_TURN when finished.\nYou have " + (MAX_ACTIONS - consecutiveActions) + " actions remaining.");
+                consecutiveActions++;
+            }
+            endTurnFlag = false;
+            consecutiveActions = 0;
+
+            // If Player is in Jail, use the Jail moves set and update turnsInJail accordingly (before & after the turn).
+            if (gameState.jailedPlayers[gameState.turnIndicator]) {
+
+                if (gameState.turnsInJail[gameState.turnIndicator] < Monopoly.MAX_TURNS_IN_JAIL)
+                    signalTurn(3, gameState.turnIndicator, "YOU ARE IN JAIL!\nIt's your turn! " + PROMPT_DEFAULT);
+                else
+                    signalTurn(6, gameState.turnIndicator, "YOU ARE IN JAIL!\nIt's your turn! " + PROMPT_DEFAULT + "\nYou must leave Jail this turn.");
+
+                if (gameState.jailedPlayers[gameState.turnIndicator])
+                    gameState.turnsInJail[gameState.turnIndicator]++;
+                else
+                    gameState.turnsInJail[gameState.turnIndicator] = 0;
+
+            }
+            else
+                signalTurn(7, gameState.turnIndicator, "It's your turn! " + PROMPT_DEFAULT);
+
+            // Post-move actions
+            while (!endTurnFlag && consecutiveActions < MAX_ACTIONS) {
+                signalTurn(2, gameState.turnIndicator, "Would you like to perform actions before ending your turn?\nInput END_TURN when finished.\nYou have " + (MAX_ACTIONS - consecutiveActions) + " actions remaining.");
+                consecutiveActions++;
+            }
+            endTurnFlag = false;
+
+        }
+
     }
 
     /**
@@ -872,13 +931,18 @@ public class Game implements OutputsWarnings {
      */
     private boolean cannotPay(int playerIndex, int amount) {
 
-        // Give player a chance to make up the funds
-        signalTurn(4, playerIndex, "You need to make up the funds to pay $" + amount + ".");
-        if (gameState.cash[playerIndex] >= amount)
-            return true;
+        for (int i = MAX_ACTIONS; i > 0; i--) {
+            // Give player a chance to make up the funds
+            signalTurn(4, playerIndex, "You need to make up the funds to pay $" + amount + ".\nYou have" + i + " actions remaining.");
+            if (gameState.cash[playerIndex] >= amount)
+                return true;
+            if (gameState.playerBankruptcy[playerIndex])
+                break;
+        }
 
-        // Bankrupt the player if they haven't raised the funds
-        bankruptPlayer(playerIndex);
+        // Bankrupt the player if they haven't raised the funds & haven't already bankrupted
+        if (!gameState.playerBankruptcy[playerIndex])
+            bankruptPlayer(playerIndex);
         return false;
 
     }
@@ -970,6 +1034,13 @@ public class Game implements OutputsWarnings {
      */
     private void bankruptPlayer(int playerIndex) {
         gameState.playerBankruptcy[playerIndex] = true;
+        for (int i = 0; i < gameState.numPlayers; i++) {
+            if (gameState.ownership[i] == playerIndex) {
+                gameState.ownership[i] = -1;
+                gameState.mortgages[i] = false;
+                gameState.houses[i] = 0;
+            }
+        }
         players[playerIndex].output(playerUUIDs[playerIndex], players[playerIndex].getName() + " bankrupted!!");
     }
 
@@ -987,19 +1058,23 @@ public class Game implements OutputsWarnings {
 
         // Grab defaults from case code
         switch (execFlowCode) {
-            // Case 0 is used for beginning-of-turn actions. The player must be not in jail.
+            // Case 0 is used for beginning-of-turn actions. The player must be not in Jail.
             case 0 -> legalActions = new HashSet<>(List.of(GameAction.START_ACTIONS));
             // Case 1 is used for landing on a Property.
             case 1 -> legalActions = new HashSet<>(List.of(GameAction.PROPERTY_BUY_OR_AUCTION));
             // Case 2 is used for end-of-turn actions e.g. building houses, mortgaging, trading.
                 // Note for later: do we want TRADE_ACCEPT and TRADE_REJECT included in case 2? Atm I say no.
             case 2 -> legalActions = new HashSet<>(List.of(GameAction.END_ACTIONS));
-            // Case 3 is used for beginning a turn in jail.
+            // Case 3 is used for beginning a turn in Jail.
             case 3 -> legalActions = new HashSet<>(List.of(GameAction.JAIL_ACTIONS));
             // Case 4 is used for making up funds when unable to pay.
             case 4 -> legalActions = new HashSet<>(List.of(GameAction.SELL_ACTIONS));
             // Case 5 is used for the auction sub-routine.
             case 5 -> legalActions = new HashSet<>(List.of(GameAction.AUCTION_BID));
+            // Case 6 is used for exiting Jail by force.
+            case 6 -> legalActions = new HashSet<>(List.of(GameAction.JAIL_PAY_BAIL, GameAction.JAIL_USE_CARD));
+            // Case 7 is used for forcing a move.
+            case 7 -> legalActions = new HashSet<>(List.of(GameAction.MOVE_THROW_DICE));
             // Default case (e.g. -1) will simply return `currentLegalActions`.
             default -> legalActions = new HashSet<>(currentLegalActions);
         }

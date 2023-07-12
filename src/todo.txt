@@ -1,8 +1,13 @@
 GAME LOGIC:
 
     1) Fix remaining bugs with auction procedure.
+        a) It's pretty non-functional overall - pick through it.
+        b) Bankrupted Players can still auction.
     2) Figure out what we're doing with async variable. It's deprecated rn and maybe shouldn't be.
     3) Update warn() and its usages.
+    4) Complete deprecation of `doNotRemoveAction`.
+        a) Make pre-and-post actions handled in `endTurn()`
+    5) Implement `gameState` counter for consecutive turns in jail (force bail payment or card use after 3)
 
     Also:
     *) Change wrapper requirements to make stdin debugging easier.
