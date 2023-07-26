@@ -72,18 +72,17 @@ public class Property {
     /**
      * Calculate & return rent value for a [non-functional] Property.
      * @param gameState Game State context.
-     * @param board Associated Board object, only referenced when calculating rent for Railroads and Utilities.
      * @param roll Dice roll value, only referenced when calculating rent for Utilities.
      * @return Rent value for Property & context.
      */
-    public int calculateRent(GameState gameState, Board board, int roll) {
+    public int calculateRent(GameState gameState, int roll) {
         int[] ownership = gameState.ownership;
         switch (color) {
             case RAILROAD -> {
                 int railroadsOwned = 1;
                 int pIndex = Board.indexOf(this.name);
-                for (int i = 0; i < board.getSquares().size(); i++) {
-                    Property property = board.getSquares().get(i);
+                for (int i = 0; i < Board.SQUARES.size(); i++) {
+                    Property property = Board.SQUARES.get(i);
                     if (i == pIndex || property.color != COLOR_SET.RAILROAD) continue;
                     if (ownership[i] == ownership[pIndex])
                         railroadsOwned++;
@@ -93,8 +92,8 @@ public class Property {
             case UTILITY -> {
                 boolean multipleUtilities = false;
                 int pIndex = Board.indexOf(this.name);
-                for (int i = 0; i < board.getSquares().size(); i++) {
-                    Property property = board.getSquares().get(i);
+                for (int i = 0; i < Board.SQUARES.size(); i++) {
+                    Property property = Board.SQUARES.get(i);
                     if (i == pIndex || property.color != COLOR_SET.UTILITY) continue;
                     if (ownership[i] == ownership[pIndex]) {
                         multipleUtilities = true;
@@ -111,7 +110,7 @@ public class Property {
                 boolean isMonopoly = gameState.propertyIsMonopoly(pIndex);
                 if (isMonopoly) {
                     if (gameState.houses[pIndex] > 0)
-                        return rentTable[gameState.houses[pIndex]];
+                        return rentTable[gameState.houses[pIndex]-1];
                     else  // Double the base rent on unimproved Monopolies
                         return baseRent * 2;
                 } else {
@@ -124,7 +123,7 @@ public class Property {
     // Wrapper function used EXCLUSIVELY for non-Railroad and non-Utility Properties.
     // Included for posterity's sake.
     public int calculateRent() {
-        return calculateRent(null, null, 0);
+        return calculateRent(null, 0);
     }
 
 }

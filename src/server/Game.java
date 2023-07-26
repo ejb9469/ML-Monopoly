@@ -35,10 +35,11 @@ public class Game implements OutputsWarnings {
     private Property biddingProperty = null;
     private List<Integer> auctionBids = null;
 
+    private Dice lastDiceRoll = null;
+
     private final GameState gameState;
     private final Player[] players;
     private final UUID[] playerUUIDs;
-    public final Board board;  // TODO: Temporarily public!
 
     /**
      * Constructs a Game given a pre-existing Communicator object.
@@ -49,7 +50,6 @@ public class Game implements OutputsWarnings {
     public Game(int numPlayers, String[] names, Communicator communicator) {
         if (communicator == null)
             communicator = new DebugPipe(this);
-        this.board = new Board(this);
 
         playerUUIDs = new UUID[numPlayers];
         Set<UUID> seenUUIDs = new HashSet<>();
@@ -108,7 +108,9 @@ public class Game implements OutputsWarnings {
         // Check if legal move. If not, reject it & replace with END_TURN.
         if (!currentLegalActions.contains(action)) {
             warn(2);
-            action = GameAction.END_TURN;
+            signalTurn(-1, keyIndex, "GameAction not allowed, try again.");
+            return;
+            //action = GameAction.END_TURN;
         }
 
         boolean isPlayerTurn = (gameState.turnIndicator == keyIndex);
@@ -117,8 +119,8 @@ public class Game implements OutputsWarnings {
         //      This can be used respective or irrespective of context,
         //      e.g. Mortgaging and unmortgaging have no theoretical limit,
         //           but throwing move dice can only be repeated when rolling doubles.
-        // TODO: Currently deprecated! 07-11-23
-        boolean doNotRemoveAction = false;
+        // Currently deprecated! 07-11-23
+        //boolean doNotRemoveAction = false;
 
         // Handle action
         switch (action) {
@@ -136,6 +138,8 @@ public class Game implements OutputsWarnings {
                 int toss = dice.toss();
                 gameState.timesRolled[keyIndex]++;
 
+                lastDiceRoll = dice;
+
                 boolean allowAdditionalMove = false;
                 // Handle doubles
                 if (dice.doubles) {
@@ -145,7 +149,7 @@ public class Game implements OutputsWarnings {
                         break;  // Do not proceed with the move
                     } else {
                         // Less than three doubles in a row
-                        doNotRemoveAction = true;  // Quick, add it back!
+                        //doNotRemoveAction = true;  // Quick, add it back!
                         allowAdditionalMove = true;
                     }
                 }
@@ -154,7 +158,9 @@ public class Game implements OutputsWarnings {
                 moveToken(keyIndex, toss);
 
                 if (allowAdditionalMove && !gameState.jailedPlayers[keyIndex] && !gameState.playerBankruptcy[keyIndex])
-                    signalTurn(7, keyIndex, "You rolled doubles last turn!\n" + PROMPT_DEFAULT);
+                    signalTurn(7, keyIndex,
+                            "You rolled doubles last turn!\n" + PROMPT_DEFAULT +
+                                    "\nYou have rolled doubles " + gameState.timesRolled[keyIndex] + " times in a row.");
 
             }
             case TRADE_OFFER -> {}  // Trading implemented later!
@@ -163,9 +169,9 @@ public class Game implements OutputsWarnings {
             case PROPERTY_BUY_OR_AUCTION -> {
 
                 // This action can theoretically be repeated.
-                doNotRemoveAction = true;
+                //doNotRemoveAction = true;
 
-                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+                int propertyIndex = gameState.playerLocations[keyIndex];
 
                 // Perform checks on Player turn and location status
                 if (
@@ -174,20 +180,20 @@ public class Game implements OutputsWarnings {
                         || gameState.ownership[propertyIndex] != -1  // Property is already owned
                 ) break;
 
-                if (wrapper.objBool && gameState.cash[keyIndex] >= wrapper.objProperty.marketPrice) {
+                if (wrapper.objBool && gameState.cash[keyIndex] >= Board.SQUARES.get(propertyIndex).marketPrice) {
                     // Remember that having enough cash is a prerequisite to even reach the buyProperty() method.
-                    buyProperty(keyIndex, wrapper.objProperty);
+                    buyProperty(keyIndex, Board.SQUARES.get(propertyIndex));
                 } else {
-                    auctionProperty(keyIndex, wrapper.objProperty);
+                    auctionProperty(keyIndex, Board.SQUARES.get(propertyIndex));
                 }
 
             }
             case PROPERTY_MORTGAGE -> {
 
                 // This action can theoretically be repeated.
-                doNotRemoveAction = true;
+                //doNotRemoveAction = true;
 
-                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+                int propertyIndex = Board.SQUARES.indexOf(wrapper.objProperty);
 
                 // Perform checks on Player turn, ownership, and mortgage status
                 if (
@@ -202,9 +208,9 @@ public class Game implements OutputsWarnings {
             case PROPERTY_UNMORTGAGE -> {
 
                 // This action can theoretically be repeated.
-                doNotRemoveAction = true;
+                //doNotRemoveAction = true;
 
-                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+                int propertyIndex = Board.SQUARES.indexOf(wrapper.objProperty);
 
                 // Perform checks on Player turn, ownership, mortgage, and cash status
                 if (
@@ -220,13 +226,13 @@ public class Game implements OutputsWarnings {
             case AUCTION_BID -> {
 
                 // Perform check on ownership status
-                if (gameState.ownership[board.getSquares().indexOf(biddingProperty)] != -1)
+                if (gameState.ownership[Board.SQUARES.indexOf(biddingProperty)] != -1)
                     break;
 
                 int bid = wrapper.objInt;
 
-                // Perform check on cash status
-                if (bid >= gameState.cash[keyIndex])
+                // Perform check on cash status & player bankruptcy
+                if (bid > gameState.cash[keyIndex] || gameState.playerBankruptcy[keyIndex])
                     bid = -1;
 
                 // Replace old bid with new bid (or lack thereof)
@@ -236,9 +242,9 @@ public class Game implements OutputsWarnings {
             case HOUSE_BUILD -> {
 
                 // This action can theoretically be repeated.
-                doNotRemoveAction = true;
+                //doNotRemoveAction = true;
 
-                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+                int propertyIndex = Board.SQUARES.indexOf(wrapper.objProperty);
 
                 boolean isBuyingHotel = (gameState.houses[propertyIndex] == 4);
 
@@ -257,7 +263,7 @@ public class Game implements OutputsWarnings {
                 List<Property> propertySet = Board.getSquaresOfColorSet(wrapper.objProperty.color);
                 int[] propertySetIndices = new int[propertySet.size()];
                 for (int i = 0; i < propertySetIndices.length; i++)
-                    propertySetIndices[i] = board.getSquares().indexOf(propertySet.get(i));
+                    propertySetIndices[i] = Board.SQUARES.indexOf(propertySet.get(i));
 
                 // Perform checks on set ownership & building evenness
                 boolean hasSetAndIsBuildingEvenly = true;
@@ -278,9 +284,9 @@ public class Game implements OutputsWarnings {
             case HOUSE_SELL -> {
 
                 // This action can theoretically be repeated
-                doNotRemoveAction = true;
+                //doNotRemoveAction = true;
 
-                int propertyIndex = board.getSquares().indexOf(wrapper.objProperty);
+                int propertyIndex = Board.SQUARES.indexOf(wrapper.objProperty);
 
                 boolean isSellingHotel = (gameState.houses[propertyIndex] == 5);
 
@@ -297,7 +303,7 @@ public class Game implements OutputsWarnings {
                 List<Property> propertySet = Board.getSquaresOfColorSet(wrapper.objProperty.color);
                 int[] propertySetIndices = new int[propertySet.size()];
                 for (int i = 0; i < propertySetIndices.length; i++)
-                    propertySetIndices[i] = board.getSquares().indexOf(propertySet.get(i));
+                    propertySetIndices[i] = Board.SQUARES.indexOf(propertySet.get(i));
 
                 // Perform checks on building evenness
                 boolean isBuildingEvenly = true;
@@ -354,7 +360,7 @@ public class Game implements OutputsWarnings {
                 ) break;
 
                 freePlayer(keyIndex, 1);
-                signalTurn(0, keyIndex);
+                signalTurn(7, keyIndex);
 
             }
             case JAIL_USE_CARD -> {
@@ -367,7 +373,7 @@ public class Game implements OutputsWarnings {
                 ) break;
 
                 freePlayer(keyIndex, 2);
-                signalTurn(0, keyIndex);
+                signalTurn(7, keyIndex);
 
             }
             case DECLARE_BANKRUPTCY -> {
@@ -378,13 +384,13 @@ public class Game implements OutputsWarnings {
                 bankruptPlayer(keyIndex);
 
                 endTurnFlag = true;
-                return;
+                //return;
 
             }
             case END_TURN -> {
 
                 endTurnFlag = true;
-                return;
+                //return;
 
             }
 
@@ -392,8 +398,8 @@ public class Game implements OutputsWarnings {
 
         // Remove performed action from set of legal actions.
         // This branch will execute depending on the type of action and its context.
-        if (!doNotRemoveAction)
-            currentLegalActions.remove(action);
+        //if (!doNotRemoveAction)
+            //currentLegalActions.remove(action);
 
     }
 
@@ -450,9 +456,9 @@ public class Game implements OutputsWarnings {
     private void moveTokenForwards(int playerIndex, int spaces, double rentMultiplier) {
 
         int currentLocation = gameState.playerLocations[playerIndex];
-        int landingLocation = (currentLocation + spaces) % board.getSquares().size();
+        int landingLocation = (currentLocation + spaces) % Board.SQUARES.size();
         gameState.playerLocations[playerIndex] = landingLocation;
-        if (landingLocation < currentLocation || spaces >= board.getSquares().size())  // GO procedure
+        if (landingLocation < currentLocation || spaces >= Board.SQUARES.size())  // GO procedure
             incrementCash(playerIndex, 200);
 
         handleMoveLanding(playerIndex, spaces, landingLocation, rentMultiplier);
@@ -471,7 +477,7 @@ public class Game implements OutputsWarnings {
     private void moveTokenBackwards(int playerIndex, int spaces, double rentMultiplier) {
 
         int currentLocation = gameState.playerLocations[playerIndex];
-        int landingLocation = (currentLocation - spaces + board.getSquares().size()) % board.getSquares().size();
+        int landingLocation = (currentLocation - spaces + Board.SQUARES.size()) % Board.SQUARES.size();
         gameState.playerLocations[playerIndex] = landingLocation;
 
         handleMoveLanding(playerIndex, spaces, landingLocation, rentMultiplier);
@@ -487,10 +493,11 @@ public class Game implements OutputsWarnings {
      */
     private void handleMoveLanding(int playerIndex, int spaces, int landingLocation, double rentMultiplier) {
 
-        Property landingProperty = board.getSquares().get(landingLocation);
+        Property landingProperty = Board.SQUARES.get(landingLocation);
 
         // We're dealing with e.g. Income Tax, GO, Free Parking, etc.
         if (landingProperty.isFunctionalOnly()) {
+
             switch (landingProperty.getName()) {
                 case "GO" -> {}  // GO functionality already handled
                 case "Chance", "Community Chest" -> {
@@ -502,12 +509,15 @@ public class Game implements OutputsWarnings {
                 case "Luxury Tax" -> {
                     incrementCash(playerIndex, -75);
                 }
-                case "Jail" -> {}  // Just visiting!
+                case "Jail" -> {
+                    players[playerIndex].output(playerUUIDs[playerIndex], "Just visiting!");
+                }
                 case "Go To Jail" -> {
                     jailPlayer(playerIndex);
                 }
                 case "Free Parking" -> {}  // Do nothing. Too bad!
             }
+
         }
 
         // We're dealing with a rented Property
@@ -515,13 +525,13 @@ public class Game implements OutputsWarnings {
 
             // Property is NOT OWNED - buy/auction
             if (gameState.ownership[landingLocation] == -1) {
-                String prompt = "Buy / auction " + board.getSquares().get(landingLocation).getName();
+                String prompt = "Buy / auction " + Board.SQUARES.get(landingLocation).getName();
                 signalTurn(1, playerIndex, prompt);
             }
 
             // Property is OWNED - pay rent
-            else {
-                payRent(landingProperty, playerIndex, gameState.ownership[landingLocation], spaces, rentMultiplier);
+            else if (gameState.ownership[landingLocation] != playerIndex) {
+                payRent(landingProperty, playerIndex, gameState.ownership[landingLocation], rentMultiplier);
             }
 
         }
@@ -543,51 +553,51 @@ public class Game implements OutputsWarnings {
             // Chance \\
             case ADVANCE_TO_BOARDWALK -> {
                 int boardwalkIndex = Board.indexOf("Boardwalk");
-                int distanceToMove = (boardwalkIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (boardwalkIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_GO, ADVANCE_TO_GO_2 -> {
                 int goIndex = Board.indexOf("GO");
-                int distanceToMove = (goIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (goIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_ILLINOIS -> {
                 int illinoisIndex = Board.indexOf("Illinois Avenue");
-                int distanceToMove = (illinoisIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (illinoisIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_ST_CHARLES -> {
                 int charlesIndex = Board.indexOf("St. Charles Place");
-                int distanceToMove = (charlesIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (charlesIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove);
             }
             case ADVANCE_TO_NEAREST_RAILROAD, ADVANCE_TO_NEAREST_RAILROAD_2 -> {
                 int railroadIndex = -1;
-                for (int i = 0; i < board.getSquares().size(); i++) {
-                    if (board.getSquares().get((gameState.playerLocations[playerIndex] + i) % board.getSquares().size()).color == COLOR_SET.RAILROAD) {
-                        railroadIndex = (gameState.playerLocations[playerIndex] + i) % board.getSquares().size();
+                for (int i = 0; i < Board.SQUARES.size(); i++) {
+                    if (Board.SQUARES.get((gameState.playerLocations[playerIndex] + i) % Board.SQUARES.size()).color == COLOR_SET.RAILROAD) {
+                        railroadIndex = (gameState.playerLocations[playerIndex] + i) % Board.SQUARES.size();
                         break;
                     }
                 }
-                int distanceToMove = (railroadIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (railroadIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove, 2.0);
             }
             case ADVANCE_TO_NEAREST_UTILITY -> {
 
                 // Locate nearest utility
                 int utilityIndex = -1;
-                for (int i = 1; i < board.getSquares().size(); i++) {
-                    if (board.getSquares().get((gameState.playerLocations[playerIndex] + i) % board.getSquares().size()).color == COLOR_SET.UTILITY) {
-                        utilityIndex = (gameState.playerLocations[playerIndex] + i) % board.getSquares().size();
+                for (int i = 1; i < Board.SQUARES.size(); i++) {
+                    if (Board.SQUARES.get((gameState.playerLocations[playerIndex] + i) % Board.SQUARES.size()).color == COLOR_SET.UTILITY) {
+                        utilityIndex = (gameState.playerLocations[playerIndex] + i) % Board.SQUARES.size();
                         break;
                     }
                 }
 
                 // Locate the other (remaining) utility
                 int otherUtilityIndex = -1;
-                for (int i = 1; i < board.getSquares().size(); i++) {
-                    if (board.getSquares().get((utilityIndex + i) % board.getSquares().size()).color == COLOR_SET.UTILITY) {
-                        otherUtilityIndex = (utilityIndex + i) % board.getSquares().size();
+                for (int i = 1; i < Board.SQUARES.size(); i++) {
+                    if (Board.SQUARES.get((utilityIndex + i) % Board.SQUARES.size()).color == COLOR_SET.UTILITY) {
+                        otherUtilityIndex = (utilityIndex + i) % Board.SQUARES.size();
                         break;
                     }
                 }
@@ -601,8 +611,10 @@ public class Game implements OutputsWarnings {
                     utilityRentMultiplier = 1.0;
 
                 // Calculate distance to move and move token forwards
-                int distanceToMove = (utilityIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (utilityIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove, utilityRentMultiplier);
+                // TODO: Bug here - using `distanceToMove` instead of a new roll.
+                //       Clarify Monopoly rules: do we just... throw another Dice?
 
             }
             case COLLECT_50 -> {
@@ -626,7 +638,7 @@ public class Game implements OutputsWarnings {
             }
             case ADVANCE_TO_READING_RAILROAD -> {
                 int readingIndex = Board.indexOf("Reading Railroad");
-                int distanceToMove = (readingIndex - gameState.playerLocations[playerIndex] + board.getSquares().size()) % board.getSquares().size();
+                int distanceToMove = (readingIndex - gameState.playerLocations[playerIndex] + Board.SQUARES.size()) % Board.SQUARES.size();
                 moveToken(playerIndex, distanceToMove);
             }
             case PAY_50_EACH_PLAYER -> {
@@ -709,7 +721,10 @@ public class Game implements OutputsWarnings {
             // Pre-move actions
             int consecutiveActions = 0;
             while (!endTurnFlag && consecutiveActions < MAX_ACTIONS) {
-                signalTurn(2, gameState.turnIndicator, "Would you like to perform actions before moving?\nInput END_TURN when finished.\nYou have " + (MAX_ACTIONS - consecutiveActions) + " actions remaining.");
+                String prompt = "Would you like to perform actions before moving?" +
+                        "\nInput END_TURN when finished." +
+                        "\nYou have " + (MAX_ACTIONS - consecutiveActions) + " actions remaining.";
+                signalTurn(2, gameState.turnIndicator, prompt);
                 consecutiveActions++;
             }
             endTurnFlag = false;
@@ -734,7 +749,10 @@ public class Game implements OutputsWarnings {
 
             // Post-move actions
             while (!endTurnFlag && consecutiveActions < MAX_ACTIONS) {
-                signalTurn(2, gameState.turnIndicator, "Would you like to perform actions before ending your turn?\nInput END_TURN when finished.\nYou have " + (MAX_ACTIONS - consecutiveActions) + " actions remaining.");
+                String prompt = "Would you like to perform actions before ending your turn?" +
+                        "\nInput END_TURN when finished." +
+                        "\nYou have " + (MAX_ACTIONS - consecutiveActions) + " actions remaining.";
+                signalTurn(2, gameState.turnIndicator, prompt);
                 consecutiveActions++;
             }
             endTurnFlag = false;
@@ -825,13 +843,16 @@ public class Game implements OutputsWarnings {
                     break;
                 }
 
+                int maxBid = Collections.max(auctionBids);
+
                 // Signal Player for bid
-                String prompt = "What is your bid on " + property.getName() + "?\nBid -1 to concede.";
+                String prompt = "What is your bid on " + property.getName() + "?" +
+                        "\nBid -1 to concede." +
+                        "\nCurrent maximum bid: " + maxBid;
                 signalTurn(5, pIndex, prompt);
 
-                // Replace all negative bids and non-max bids with -1
-                // Obtuse comparison because we're dealing with `Integer` objects (smile)
-                if (auctionBids.get(pIndex) < 0 || !auctionBids.get(pIndex).equals(Collections.max(auctionBids)))
+                // Replace all invalid bids with -1
+                if (auctionBids.get(pIndex) < STARTING_BID_AMOUNT || auctionBids.get(pIndex) < maxBid)
                     auctionBids.set(pIndex, -1);
 
             }
@@ -839,7 +860,7 @@ public class Game implements OutputsWarnings {
 
         // Find the maximum bid and winning player
         int price = -1;  // Maximum bid amount
-        int winner = -1;  // Index of the winning player
+        int winner = 0;  // Index of the winning player
         for (int i = 0; i < auctionBids.size(); i++) {
             int bid = auctionBids.get(i);
             if (bid > -1 && bid > price) {
@@ -933,7 +954,8 @@ public class Game implements OutputsWarnings {
 
         for (int i = MAX_ACTIONS; i > 0; i--) {
             // Give player a chance to make up the funds
-            signalTurn(4, playerIndex, "You need to make up the funds to pay $" + amount + ".\nYou have" + i + " actions remaining.");
+            String prompt = "You need to make up the funds to pay $" + amount + ".\nYou have " + i + " actions remaining.";
+            signalTurn(4, playerIndex, prompt);
             if (gameState.cash[playerIndex] >= amount)
                 return true;
             if (gameState.playerBankruptcy[playerIndex])
@@ -953,9 +975,11 @@ public class Game implements OutputsWarnings {
      * @param playerIndex Index / ID of Player A (lander).
      * @param renterIndex Index / ID of Player B (renter).
      */
-    private void payRent(Property property, int playerIndex, int renterIndex, int spaces, double rentMultiplier) {
+    private void payRent(Property property, int playerIndex, int renterIndex, double rentMultiplier) {
 
-        int rentCost = (int)(property.calculateRent(this.getGameState(), this.board, spaces) * rentMultiplier);
+        // We reference the results of the last dice roll for Utilities' sake.
+        // Teleporting to a Utility via a Card means the distance traveled is irrelevant, so we must reference the dice roll itself.
+        int rentCost = (int)(property.calculateRent(this.getGameState(), lastDiceRoll.result()) * rentMultiplier);
         incrementCash(playerIndex, -rentCost);
         incrementCash(renterIndex, rentCost);
 
@@ -1130,12 +1154,6 @@ public class Game implements OutputsWarnings {
     public GameState getGameState() {
         return new GameState(gameState);
     }
-
-    // Getters
-    public Player[] getPlayers() {
-        return players;
-    }
-
 
     public void warn(int code) {  // TODO: Update warn() (and add more uses)
         System.err.println("Warning called for Game id=" + id + ", CODE " + code + " || " + Calendar.getInstance());

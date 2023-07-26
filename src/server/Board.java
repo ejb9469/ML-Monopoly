@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Board {
+public abstract class Board {
 
     public static final List<Property> SQUARES = Arrays.asList(
             new Property("GO", COLOR_SET.FUNCTION),
@@ -48,19 +48,6 @@ public class Board {
             new Property("Luxury Tax", COLOR_SET.FUNCTION),
             new Property("Boardwalk", COLOR_SET.DARK_BLUE, 400, .5, 50, 200, .5, new int[]{200, 600, 1400, 1700, 2000})
     );
-
-    // TODO: Phase out instance form of this class entirely || 07-08-23
-    private final List<Property> squares = new ArrayList<>(SQUARES);
-
-    protected final Game parentGame;
-
-    public Board(Game parentGame) {
-        this.parentGame = parentGame;
-    }
-
-    public List<Property> getSquares() {
-        return squares;
-    }
 
     public static int indexOf(String propertyName) {
 
