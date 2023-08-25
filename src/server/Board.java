@@ -52,7 +52,7 @@ public abstract class Board {
     public static int indexOf(String propertyName) {
 
         for (int i = 0; i < SQUARES.size(); i++) {
-            if (SQUARES.get(i).getName().equals(propertyName))
+            if (SQUARES.get(i).getName().equalsIgnoreCase(propertyName))
                 return i;
         }
         return -1;

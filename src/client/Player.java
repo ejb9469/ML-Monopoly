@@ -85,7 +85,6 @@ public class Player implements OutputsWarnings {
      * @param async Denotes call on another Player's turn. Used in situations like trade management and inability to pay rent.
      */
     private void takeTurn(GameAction[] gameActions, GameObject[] wrappers, boolean async) {
-        //fieldsLocked = true;  // Race conditions?
         if (gameStateCopy.turnIndicator != id && !async)
             warn(1);
         for (int i = 0; i < gameActions.length; i++) {
@@ -93,9 +92,8 @@ public class Player implements OutputsWarnings {
             GameObject wrapper = wrappers[i];
             switch (gameAction) {
                 case MOVE_THROW_DICE -> throwMoveDice();
-                case TRADE_OFFER -> offerTrade(wrapper.objPlayer, wrapper.objTrade);
-                case TRADE_ACCEPT -> acceptTrade(wrapper.objTrade);
-                case TRADE_REJECT -> rejectTrade(wrapper.objTrade);
+                case TRADE_OFFER -> offerTrade(wrapper.objTrade);
+                case TRADE_RESPOND -> respondToTrade(wrapper.objBool);
                 case PROPERTY_BUY_OR_AUCTION -> buy(wrapper.objProperty, wrapper.objBool);
                 case PROPERTY_MORTGAGE -> mortgage(wrapper.objProperty);
                 case PROPERTY_UNMORTGAGE -> unmortgage(wrapper.objProperty);
@@ -119,17 +117,19 @@ public class Player implements OutputsWarnings {
         communicator.requestAction(action, uuid, null);
     }
 
-    // TODO: Trading implementation is for later!
-    private void offerTrade(Player toPlayer, Trade terms) {
-
+    private void offerTrade(Trade trade) {
+        GameAction action = GameAction.TRADE_OFFER;
+        GameObject gameObj = new GameObject();
+        gameObj.objTrade = trade;
+        communicator.requestAction(action, uuid, gameObj);
     }
-    private void acceptTrade(Trade trade) {
 
+    private void respondToTrade(boolean accept) {
+        GameAction action = GameAction.TRADE_RESPOND;
+        GameObject gameObj = new GameObject();
+        gameObj.objBool = accept;
+        communicator.requestAction(action, uuid, gameObj);
     }
-    private void rejectTrade(Trade trade) {
-
-    }
-    // offerTrade() is used for counter-offers
 
     private void buy(Property property, boolean auction) {
         GameAction action = GameAction.PROPERTY_BUY_OR_AUCTION;

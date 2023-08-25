@@ -7,9 +7,10 @@ import client.Player;
  * ... such as Properties, Players, and number values.
  */
 public class GameObject {
+
     public int objInt;
     public boolean objBool;
-    public Player objPlayer;
     public Property objProperty;
     public Trade objTrade;
+
 }

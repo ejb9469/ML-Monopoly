@@ -35,6 +35,8 @@ public class Game implements OutputsWarnings {
     private Property biddingProperty = null;
     private List<Integer> auctionBids = null;
 
+    private Trade currentTrade = null;
+
     private Dice lastDiceRoll = null;
 
     private final GameState gameState;
@@ -163,9 +165,83 @@ public class Game implements OutputsWarnings {
                                     "\nYou have rolled doubles " + gameState.timesRolled[keyIndex] + " times in a row.");
 
             }
-            case TRADE_OFFER -> {}  // Trading implemented later!
-            case TRADE_ACCEPT -> {}  // Trading implemented later!
-            case TRADE_REJECT -> {}  // Trading implemented later!
+            case TRADE_OFFER -> {
+
+                // Check Player turn status
+                if (!isPlayerTurn) break;
+
+                // Check if indexes are valid
+                if (wrapper.objTrade.getPitcherIndex() != keyIndex
+                    || wrapper.objTrade.getCatcherIndex() < 0
+                    || wrapper.objTrade.getCatcherIndex() > gameState.numPlayers
+                ) break;
+
+                List<Integer> cleansedPropIndexList = new ArrayList<>();
+                int[][] contents = wrapper.objTrade.getContents(true);
+                for (int pIndex : contents[1]) {
+                    if (pIndex < 0 || pIndex > Board.SQUARES.size()) continue;
+                    if (gameState.ownership[pIndex] == keyIndex)
+                        cleansedPropIndexList.add(pIndex);
+                }
+                int[] cPropIndexArr = new int[cleansedPropIndexList.size()];
+                for (int i = 0; i < cleansedPropIndexList.size(); i++)
+                    cPropIndexArr[i] = cleansedPropIndexList.get(i);
+                contents[1] = cPropIndexArr;
+
+                if (contents[0][0] < 0)
+                    contents[0][0] = 0;
+                else if (contents[0][0] > gameState.cash[keyIndex])
+                    contents[0][0] = gameState.cash[keyIndex];
+                if (contents[2][0] < 0)
+                    contents[2][0] = 0;
+                else if (contents[2][0] > gameState.gtfoJailCards[keyIndex])
+                    contents[2][0] = gameState.gtfoJailCards[keyIndex];
+
+                wrapper.objTrade.counter(true, contents, false);
+
+                int catcherIndex = wrapper.objTrade.getCatcherIndex();
+                cleansedPropIndexList = new ArrayList<>();
+                contents = wrapper.objTrade.getContents(false);
+                for (int pIndex : contents[1]) {
+                    if (pIndex < 0 || pIndex > Board.SQUARES.size()) continue;
+                    if (gameState.ownership[pIndex] == catcherIndex)
+                        cleansedPropIndexList.add(pIndex);
+                }
+                cPropIndexArr = new int[cleansedPropIndexList.size()];
+                for (int i = 0 ; i < cleansedPropIndexList.size(); i++)
+                    cPropIndexArr[i] = cleansedPropIndexList.get(i);
+                contents[1] = cPropIndexArr;
+
+                if (contents[0][0] < 0)
+                    contents[0][0] = 0;
+                else if (contents[0][0] > gameState.cash[catcherIndex])
+                    contents[0][0] = gameState.cash[catcherIndex];
+                if (contents[2][0] < 0)
+                    contents[2][0] = 0;
+                else if (contents[2][0] > gameState.gtfoJailCards[catcherIndex])
+                    contents[2][0] = gameState.gtfoJailCards[catcherIndex];
+
+                wrapper.objTrade.counter(false, contents, false);
+
+                currentTrade = wrapper.objTrade;
+                signalTurn(8, catcherIndex,
+                        "You've received a trade from " + players[keyIndex].getName() + "! Details below:\n" +
+                                currentTrade.toString());
+                currentTrade = null;
+
+            }
+            case TRADE_RESPOND -> {
+
+                // Check null status of `currentTrade`
+                if (currentTrade == null) break;
+
+                // Check if index is valid
+                if (currentTrade.getCatcherIndex() != keyIndex) break;
+
+                if (wrapper.objBool)
+                    acceptTrade(currentTrade.getPitcherIndex(), keyIndex, currentTrade);
+
+            }
             case PROPERTY_BUY_OR_AUCTION -> {
 
                 // This action can theoretically be repeated.
@@ -783,7 +859,34 @@ public class Game implements OutputsWarnings {
     }
 
     ////////////////////////////////////////
-    // TODO: Handle race conditions
+
+    /**
+     * Finalize a Trade between two players, the 'pitcher' and 'catcher'.
+     * @param pitcherIndex Index of Player 1; the Pitcher.
+     * @param catcherIndex Index of Player 2; the Catcher.
+     * @param trade Trade object.
+     */
+    private void acceptTrade(int pitcherIndex, int catcherIndex, Trade trade) {
+
+        int[][] pitcherContents = trade.getContents(true);
+        int[][] catcherContents = trade.getContents(false);
+
+        incrementCash(pitcherIndex, catcherContents[0][0]);
+        incrementCash(catcherIndex, -catcherContents[0][0]);
+        incrementCash(catcherIndex, pitcherContents[0][0]);
+        incrementCash(pitcherIndex, -pitcherContents[0][0]);
+
+        gameState.gtfoJailCards[pitcherIndex] += catcherContents[2][0];
+        gameState.gtfoJailCards[catcherIndex] -= catcherContents[2][0];
+        gameState.gtfoJailCards[catcherIndex] += pitcherContents[2][0];
+        gameState.gtfoJailCards[pitcherIndex] -= pitcherContents[2][0];
+
+        for (int propIndex : pitcherContents[1])
+            gameState.ownership[propIndex] = catcherIndex;
+        for (int propIndex : catcherContents[1])
+            gameState.ownership[propIndex] = pitcherIndex;
+
+    }
 
     /**
      * Buy a Property for the Player referenced by `playerIndex`.
@@ -1099,6 +1202,8 @@ public class Game implements OutputsWarnings {
             case 6 -> legalActions = new HashSet<>(List.of(GameAction.JAIL_PAY_BAIL, GameAction.JAIL_USE_CARD));
             // Case 7 is used for forcing a move.
             case 7 -> legalActions = new HashSet<>(List.of(GameAction.MOVE_THROW_DICE));
+            // Case 8 is used for responding to trades.
+            case 8 -> legalActions = new HashSet<>(List.of(GameAction.TRADE_RESPOND));
             // Default case (e.g. -1) will simply return `currentLegalActions`.
             default -> legalActions = new HashSet<>(currentLegalActions);
         }
