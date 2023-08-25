@@ -54,12 +54,24 @@ public class Trade {
 
     /**
      * Parses a serialized 'Trade String' and returns a proper Trade object.
+     * <br>Example Trade String included as a comment in the parseTradeString() method.
      * @throws NumberFormatException In cases where the method attempts to parse a non-number in a number's place.
      * @throws IndexOutOfBoundsException In cases where there are not eight args (deliminated by the pipe character).
      */
-    // TODO: Add example Trade String in documentation
-    // TODO: Add reverse function - i.e. returns Trade String from Trade object
+    // TODO: Add reverse function - i.e. returns Trade String from Trade object. This is probably vestigial.
     public static Trade parseTradeString(String tradeString) throws NumberFormatException, IndexOutOfBoundsException {
+
+        // Example of a Trade String:
+        // 0|1|500|1|39|0|0|1,3
+        // Translation:
+        // 0 - Pitcher Index (player at index 0)
+        // 1 - Catcher Index (player at index 1)
+        // 500 - Pitcher cash ($500)
+        // 1 - Pitcher # GTFO jail cards (1)
+        // 39 - Pitcher properties list (39; Boardwalk)
+        // 0 - Catcher cash ($0)
+        // 0 - Catcher # GTFO jail cards (0)
+        // 1,3 - Catcher properties list (1; Mediterranean Ave, 3; Baltic Ave)
 
         String[] args = tradeString.strip().split("\\|");
 
@@ -120,6 +132,12 @@ public class Trade {
 
     }
 
+    /**
+     * Update method for trades.
+     * @param pitcher True if dealing with pitcher's end, false if catcher's end.
+     * @param contents Updated contents value.
+     * @param recordCounter Adds to `history` (List) if true.
+     */
     public void counter(boolean pitcher, int[][] contents, boolean recordCounter) {
 
         if (recordCounter)

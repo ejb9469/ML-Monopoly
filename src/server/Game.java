@@ -174,20 +174,39 @@ public class Game implements OutputsWarnings {
                 if (wrapper.objTrade.getPitcherIndex() != keyIndex
                     || wrapper.objTrade.getCatcherIndex() < 0
                     || wrapper.objTrade.getCatcherIndex() > gameState.numPlayers
-                ) break;
+                ) {
+                    warn(4442);
+                    break;
+                }
 
+                // Pitcher Properties
                 List<Integer> cleansedPropIndexList = new ArrayList<>();
                 int[][] contents = wrapper.objTrade.getContents(true);
                 for (int pIndex : contents[1]) {
-                    if (pIndex < 0 || pIndex > Board.SQUARES.size()) continue;
+                    // Check bounds of index
+                    if (pIndex < 0 || pIndex > Board.SQUARES.size()) {
+                        warn(4443);
+                        break;
+                    }
+                    // Check ownership of Property
                     if (gameState.ownership[pIndex] == keyIndex)
                         cleansedPropIndexList.add(pIndex);
+                    else {
+                        warn(44435);
+                        break;
+                    }
+                    // Check # houses of Property (traded Properties cannot have houses)
+                    if (gameState.houses[pIndex] > 0) {
+                        warn(4444);
+                        break;
+                    }
                 }
                 int[] cPropIndexArr = new int[cleansedPropIndexList.size()];
                 for (int i = 0; i < cleansedPropIndexList.size(); i++)
                     cPropIndexArr[i] = cleansedPropIndexList.get(i);
                 contents[1] = cPropIndexArr;
 
+                // Pitcher Cash and Cards
                 if (contents[0][0] < 0)
                     contents[0][0] = 0;
                 else if (contents[0][0] > gameState.cash[keyIndex])
@@ -197,21 +216,35 @@ public class Game implements OutputsWarnings {
                 else if (contents[2][0] > gameState.gtfoJailCards[keyIndex])
                     contents[2][0] = gameState.gtfoJailCards[keyIndex];
 
+                // Update Pitcher contents
                 wrapper.objTrade.counter(true, contents, false);
 
+                // Catcher Properties
                 int catcherIndex = wrapper.objTrade.getCatcherIndex();
                 cleansedPropIndexList = new ArrayList<>();
                 contents = wrapper.objTrade.getContents(false);
                 for (int pIndex : contents[1]) {
-                    if (pIndex < 0 || pIndex > Board.SQUARES.size()) continue;
+                    if (pIndex < 0 || pIndex > Board.SQUARES.size()) {
+                        warn(4443);
+                        break;
+                    }
                     if (gameState.ownership[pIndex] == catcherIndex)
                         cleansedPropIndexList.add(pIndex);
+                    else {
+                        warn(44435);
+                        break;
+                    }
+                    if (gameState.houses[pIndex] > 0) {
+                        warn(4444);
+                        break;
+                    }
                 }
                 cPropIndexArr = new int[cleansedPropIndexList.size()];
                 for (int i = 0 ; i < cleansedPropIndexList.size(); i++)
                     cPropIndexArr[i] = cleansedPropIndexList.get(i);
                 contents[1] = cPropIndexArr;
 
+                // Catcher Cash and Cards
                 if (contents[0][0] < 0)
                     contents[0][0] = 0;
                 else if (contents[0][0] > gameState.cash[catcherIndex])
@@ -221,8 +254,10 @@ public class Game implements OutputsWarnings {
                 else if (contents[2][0] > gameState.gtfoJailCards[catcherIndex])
                     contents[2][0] = gameState.gtfoJailCards[catcherIndex];
 
+                // Update Catcher contents
                 wrapper.objTrade.counter(false, contents, false);
 
+                // Finalize trade
                 currentTrade = wrapper.objTrade;
                 signalTurn(8, catcherIndex,
                         "You've received a trade from " + players[keyIndex].getName() + "! Details below:\n" +

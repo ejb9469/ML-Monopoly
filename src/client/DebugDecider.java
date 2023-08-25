@@ -11,7 +11,6 @@ public class DebugDecider implements Decider {
 
     private static final Scanner sc = new Scanner(System.in);
 
-    @Override
     public LinkedHashMap<GameAction, GameObject> decide(Set<GameAction> possibleActions, GameState gameState, Player playerObject, boolean canEndTurn) {
 
         System.out.println("Possible actions: \n" + printActionsSet(possibleActions));
