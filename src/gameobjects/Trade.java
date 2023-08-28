@@ -1,4 +1,4 @@
-package server;
+package gameobjects;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,6 +110,11 @@ public class Trade {
 
     }
 
+    /**
+     * Gets the 'contents' of the Trade from one side.
+     * @param pitcher Pitcher side if true, catcher side if false.
+     * @return Contents 2D array, representing cash, # GTFO jail cards, and a list of Property indexes.
+     */
     public int[][] getContents(boolean pitcher) {
 
         int[][] contents;

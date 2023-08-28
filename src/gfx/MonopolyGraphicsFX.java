@@ -7,7 +7,7 @@ import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.stage.Stage;
-import server.Game;
+import gameobjects.Game;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

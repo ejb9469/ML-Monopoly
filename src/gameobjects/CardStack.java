@@ -1,4 +1,4 @@
-package server;
+package gameobjects;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package client;
+package playerobjects;
 
 // Player objects should have the following properties:
     // 1) `name` :: Name of the player
@@ -19,10 +19,14 @@ package client;
             // Jail-related actions are: throw dice, pay bail, or use card.
 
 
-import server.*;
+import gameobjects.*;
 
 import java.util.*;
 
+/**
+ * Class representing a Player of a Monopoly game.
+ * <br>This class is handled in game logic operations - this is NOT a client-side object for a networked system.
+ */
 public class Player implements OutputsWarnings {
 
     private static int ID_INCREMENT = 0;
@@ -152,7 +156,7 @@ public class Player implements OutputsWarnings {
         communicator.requestAction(action, uuid, gameObj);
     }
 
-    // bidding a negative number will cause the player to drop out of the auction
+    // Bidding a negative number will cause the player to drop out of the auction
     private void bid(int amount) {
         GameAction action = GameAction.AUCTION_BID;
         GameObject gameObj = new GameObject();

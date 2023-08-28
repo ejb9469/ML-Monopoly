@@ -1,6 +1,6 @@
-package client;
+package playerobjects;
 
-import server.PromptString;
+import gameobjects.PromptString;
 
 public class DebugOutPipe implements OutPipe {
 

@@ -1,13 +1,13 @@
-package server;
+package gameobjects;
 
-import client.Communicator;
-import client.DebugPipe;
-import client.Player;
+import playerobjects.Communicator;
+import playerobjects.DebugPipe;
+import playerobjects.Player;
 
 import java.util.*;
 
 import static java.lang.System.exit;
-// ^^ Might not be a great idea to exit this way ^^
+// ^^ Might not be a great idea to exit this way ^^ || TODO: End gracefully
 
 /**
  * Class that represents a game and implements Monopoly gameplay loop.
@@ -18,7 +18,6 @@ public class Game implements OutputsWarnings {
     public static final int MAX_TURNS = 100;
     public static final int MAX_ACTIONS = 10;
     public static final int MAX_DEPTH = 20;  // Used in requestAction()
-    public static final int MAX_TRADES = 2;  // "per player per turn", currently unused
     public static final int STARTING_BID_AMOUNT = 10;
     public static final String PROMPT_DEFAULT = "What action would you like to perform?";
 
@@ -79,9 +78,6 @@ public class Game implements OutputsWarnings {
             processTurn();
         }
     }
-    public static void main(String[] args) {
-        new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null).gameLoop();
-    }
     ///////////////////////////////////////////////////
 
     /**
@@ -116,13 +112,6 @@ public class Game implements OutputsWarnings {
         }
 
         boolean isPlayerTurn = (gameState.turnIndicator == keyIndex);
-
-        // Used for actions that are allowed multiple times per turn.
-        //      This can be used respective or irrespective of context,
-        //      e.g. Mortgaging and unmortgaging have no theoretical limit,
-        //           but throwing move dice can only be repeated when rolling doubles.
-        // Currently deprecated! 07-11-23
-        //boolean doNotRemoveAction = false;
 
         // Handle action
         switch (action) {
@@ -279,9 +268,6 @@ public class Game implements OutputsWarnings {
             }
             case PROPERTY_BUY_OR_AUCTION -> {
 
-                // This action can theoretically be repeated.
-                //doNotRemoveAction = true;
-
                 int propertyIndex = gameState.playerLocations[keyIndex];
 
                 // Perform checks on Player turn and location status
@@ -301,9 +287,6 @@ public class Game implements OutputsWarnings {
             }
             case PROPERTY_MORTGAGE -> {
 
-                // This action can theoretically be repeated.
-                //doNotRemoveAction = true;
-
                 int propertyIndex = Board.SQUARES.indexOf(wrapper.objProperty);
 
                 // Perform checks on Player turn, ownership, and mortgage status
@@ -317,9 +300,6 @@ public class Game implements OutputsWarnings {
 
             }
             case PROPERTY_UNMORTGAGE -> {
-
-                // This action can theoretically be repeated.
-                //doNotRemoveAction = true;
 
                 int propertyIndex = Board.SQUARES.indexOf(wrapper.objProperty);
 
@@ -506,11 +486,6 @@ public class Game implements OutputsWarnings {
             }
 
         }
-
-        // Remove performed action from set of legal actions.
-        // This branch will execute depending on the type of action and its context.
-        //if (!doNotRemoveAction)
-            //currentLegalActions.remove(action);
 
     }
 
@@ -948,11 +923,6 @@ public class Game implements OutputsWarnings {
      */
     private void auctionProperty(int playerIndex, Property property) {
 
-        // TODO: Fix "maximum bid" portion.
-        //      ==FIXED== 1) Purchases property for wrong amount (150 vs. 1000 when 150 was never even a bid!). ==FIXED==
-        //      2) Allows for bids under the current bid (e.g. 90 when max bid is 200).
-        //          Note: Just implemented this: it should enforce bids as max bids. Must test.
-
         // Initialize relevant fields
         this.biddingProperty = property;
         this.auctionBids = new ArrayList<>();
@@ -1194,7 +1164,7 @@ public class Game implements OutputsWarnings {
      *      3) Bankrupt Players are disqualified from winning the game.
      * @param playerIndex Player index / ID.
      */
-    private void bankruptPlayer(int playerIndex) {
+    private void bankruptPlayer(int playerIndex) {  // TODO: Bugs
         gameState.playerBankruptcy[playerIndex] = true;
         for (int i = 0; i < gameState.numPlayers; i++) {
             if (gameState.ownership[i] == playerIndex) {
@@ -1255,14 +1225,6 @@ public class Game implements OutputsWarnings {
         return generateLegalActions(execFlowCode, new HashSet<>());
     }
 
-    private int keyExists(UUID key) {
-        for (int i = 0; i < playerUUIDs.length; i++) {
-            if (playerUUIDs[i].equals(key))
-                return i;
-        }
-        return -1;
-    }
-
     /**
      * Calculate the total amount due for the general / street repairs cards.
      * @param playerIndex Index / ID of the Player who drew the card.
@@ -1283,6 +1245,19 @@ public class Game implements OutputsWarnings {
             }
         }
         return amountOwed;
+    }
+
+    /**
+     * Helper function to check if a Player UUID key exists.
+     * @param key Key to check existence of.
+     * @return Index of the Player owning `key`, -1 if no player owns `key`.
+     */
+    private int keyExists(UUID key) {
+        for (int i = 0; i < playerUUIDs.length; i++) {
+            if (playerUUIDs[i].equals(key))
+                return i;
+        }
+        return -1;
     }
 
     ////////////////////////////////////////

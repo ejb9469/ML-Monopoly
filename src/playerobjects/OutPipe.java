@@ -1,6 +1,6 @@
-package client;
+package playerobjects;
 
-import server.PromptString;
+import gameobjects.PromptString;
 
 /**
  * Defines a class of classes which will output prompt data.

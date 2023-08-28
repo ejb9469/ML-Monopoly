@@ -1,6 +1,6 @@
-package server;
+package gameobjects;
 
-import client.Player;
+import playerobjects.Player;
 
 /**
  * PromptString is a class that wraps metadata about the usage of a 'Prompt' String within the same object.

@@ -7,12 +7,12 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
-import server.GameState;
+import gameobjects.GameState;
 
 import java.util.*;
 
 import static gfx.MonopolyGraphicsFX.*;
-import static server.Monopoly.MAX_PLAYERS;
+import static gameobjects.Monopoly.MAX_PLAYERS;
 
 public class MonopolyGroup extends Group {
 

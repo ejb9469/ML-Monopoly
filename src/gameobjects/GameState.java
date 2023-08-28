@@ -1,4 +1,4 @@
-package server;
+package gameobjects;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -76,6 +76,9 @@ public class GameState {
         Arrays.fill(this.ownership, -1);
     }
 
+    /**
+     * Checks if a Property (by index) is part of a current Monopoly.
+     */
     public boolean propertyIsMonopoly(int propertyIndex) {
 
         if (ownership[propertyIndex] == -1) return false;
@@ -101,9 +104,12 @@ public class GameState {
 
     @Override
     public boolean equals(Object object) {
+
         if (!(object instanceof GameState gs))
             return super.equals(object);
+
         return (this.turnIndicator == gs.turnIndicator && Arrays.equals(this.mortgages, gs.mortgages) && Arrays.equals(this.ownership, gs.ownership) && Arrays.equals(this.cash, gs.cash) && Arrays.equals(this.houses, gs.houses) && Arrays.equals(this.playerLocations, gs.playerLocations) && Arrays.equals(this.timesRolled, gs.timesRolled) && Arrays.equals(this.jailedPlayers, gs.jailedPlayers) && Arrays.equals(this.gtfoJailCards, gs.gtfoJailCards) && Arrays.equals(this.playerBankruptcy, gs.playerBankruptcy) && this.chance.equals(gs.chance) && this.communityChest.equals(gs.communityChest));
+
     }
 
     @Override
@@ -132,6 +138,7 @@ public class GameState {
         }
         str.append("}");
         return str.toString();
+
     }
 
 }

@@ -1,4 +1,4 @@
-package server;
+package gameobjects;
 
 public class Property {
 
@@ -76,8 +76,11 @@ public class Property {
      * @return Rent value for Property & context.
      */
     public int calculateRent(GameState gameState, int roll) {
+
         int[] ownership = gameState.ownership;
         switch (color) {
+
+            // Railroad rent calculation - depends on # of Railroads the player owns.
             case RAILROAD -> {
                 int railroadsOwned = 1;
                 int pIndex = Board.indexOf(this.name);
@@ -89,6 +92,8 @@ public class Property {
                 }
                 return (baseRent * railroadsOwned);
             }
+
+            // Utility rent calculation - depends on # of Utilities the player owns, and the last dice roll.
             case UTILITY -> {
                 boolean multipleUtilities = false;
                 int pIndex = Board.indexOf(this.name);
@@ -105,6 +110,8 @@ public class Property {
                 else
                     return (roll * 4);
             }
+
+            // Rented Property rent calculation - this covers all 'normal' Properties, e.g. Boardwalk
             default -> {
                 int pIndex = Board.indexOf(this.name);
                 boolean isMonopoly = gameState.propertyIsMonopoly(pIndex);
@@ -117,13 +124,9 @@ public class Property {
                     return baseRent;
                 }
             }
-        }
-    }
 
-    // Wrapper function used EXCLUSIVELY for non-Railroad and non-Utility Properties.
-    // Included for posterity's sake.
-    public int calculateRent() {
-        return calculateRent(null, 0);
+        }
+
     }
 
 }

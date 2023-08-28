@@ -1,9 +1,9 @@
-package client;
+package playerobjects;
 
-import server.Game;
-import server.GameAction;
-import server.GameObject;
-import server.GameState;
+import gameobjects.Game;
+import gameobjects.GameAction;
+import gameobjects.GameObject;
+import gameobjects.GameState;
 
 import java.util.UUID;
 

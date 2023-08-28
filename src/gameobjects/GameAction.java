@@ -1,5 +1,9 @@
-package server;
+package gameobjects;
 
+/**
+ * Enum class representing all possible Player actions in a standard game of Monopoly.
+ * Includes groups of actions used in frequently-occurring contexts.
+ */
 public enum GameAction {
 
     MOVE_THROW_DICE,

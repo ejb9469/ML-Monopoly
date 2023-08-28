@@ -1,11 +1,17 @@
-package server;
+package gameobjects;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Static class representing a 'default' Monopoly board.
+ */
 public abstract class Board {
 
+    /**
+     * Spaces on the Monopoly board with relevant rent, mortgage, housing, etc. information.
+     */
     public static final List<Property> SQUARES = Arrays.asList(
             new Property("GO", COLOR_SET.FUNCTION),
             new Property("Mediterranean Avenue", COLOR_SET.BROWN, 60, .5, 2, 50, .5, new int[]{10, 30, 90, 160, 250}),

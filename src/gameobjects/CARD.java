@@ -1,8 +1,12 @@
-package server;
+package gameobjects;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Enum class representing all Chance and Community Chest card information in a standard game of Monopoly, circa 2023.
+ * <br>Does not include procedure - just text and context information.
+ */
 public enum CARD {
 
     ADVANCE_TO_BOARDWALK(true, "Advance to Boardwalk"),

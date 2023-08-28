@@ -1,6 +1,4 @@
-package server;
-
-import client.Player;
+package gameobjects;
 
 /**
  * Completely transparent wrapper class for subjects of GameAction-related calls, ...
