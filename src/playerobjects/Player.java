@@ -20,6 +20,7 @@ package playerobjects;
 
 
 import gameobjects.*;
+import gfx.MonopolyGraphicsFX;
 
 import java.util.*;
 
@@ -37,7 +38,8 @@ public class Player implements OutputsWarnings {
     private final UUID uuid;
 
     public Communicator communicator;  // TODO: Temporarily public!
-    private final Decider decider = new DebugDecider();  // TODO
+    //private final Judge judge = new DebugJudge(new ScannerInPipe());  // TODO
+    private final Judge judge = new GFXJudge();
     private final OutPipe output = new DebugOutPipe();
 
     public Player(Communicator communicator, String name, UUID uuid) {
@@ -71,7 +73,7 @@ public class Player implements OutputsWarnings {
         // Black-box decision-making
         // Also, ugly stinky extraction process
         boolean canEndTurn = legalActions.contains(GameAction.END_TURN);
-        LinkedHashMap<GameAction, GameObject> actionMap = decider.decide(legalActions, gameStateCopy, this, canEndTurn);
+        LinkedHashMap<GameAction, GameObject> actionMap = judge.decide(legalActions, output, gameStateCopy, canEndTurn);
         GameAction decidedAction = actionMap.keySet().stream().findFirst().get();
         GameObject wrapper = actionMap.get(decidedAction);
 

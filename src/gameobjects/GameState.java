@@ -30,6 +30,9 @@ public class GameState {
     public final int[] gtfoJailCards;
     public final boolean[] playerBankruptcy;
 
+    public int[] auctionBids;
+    public int biddingProperty;
+
     public int remainingHouses;
     public int remainingHotels;
 
@@ -37,7 +40,7 @@ public class GameState {
     public final CardStack communityChest;
 
     // Called when constructing a GameState manually.
-    public GameState(int numPlayers, int turnIndicator, boolean[] mortgages, int[] ownership, int[] cash, int[] houses, int[] playerLocations, int[] timesRolled, boolean[] jailedPlayers, int[] turnsInJail, int[] gtfoJailCards, boolean[] playerBankruptcy, int remainingHouses, int remainingHotels, CardStack chance, CardStack communityChest) {
+    public GameState(int numPlayers, int turnIndicator, boolean[] mortgages, int[] ownership, int[] cash, int[] houses, int[] playerLocations, int[] timesRolled, boolean[] jailedPlayers, int[] turnsInJail, int[] gtfoJailCards, boolean[] playerBankruptcy, int[] auctionBids, int biddingProperty, int remainingHouses, int remainingHotels, CardStack chance, CardStack communityChest) {
         this.numPlayers = numPlayers;
         this.turnIndicator = turnIndicator;
         this.mortgages = mortgages;
@@ -50,6 +53,8 @@ public class GameState {
         this.turnsInJail = turnsInJail;
         this.gtfoJailCards = gtfoJailCards;
         this.playerBankruptcy = playerBankruptcy;
+        this.auctionBids = auctionBids;
+        this.biddingProperty = biddingProperty;
         this.remainingHouses = remainingHouses;
         this.remainingHotels = remainingHotels;
         this.chance = chance;
@@ -58,13 +63,13 @@ public class GameState {
 
     // Called when constructing a new / starting GameState.
     public GameState(int numPlayers) {
-        this(numPlayers, -1, new boolean[Board.SQUARES.size()], new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], STARTING_HOUSES, STARTING_HOTELS, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
+        this(numPlayers, -1, new boolean[Board.SQUARES.size()], new int[Board.SQUARES.size()], new int[numPlayers], new int[Board.SQUARES.size()], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], new int[numPlayers], new boolean[numPlayers], new int[numPlayers], 0, STARTING_HOUSES, STARTING_HOTELS, new CardStack(CardStack.CHANCE_DEFAULT), new CardStack(CardStack.COMMUNITY_DEFAULT));
         initializeStartingValues();
     }
 
     // Called when cloning a GameState.
     public GameState(GameState original) {
-        this(original.numPlayers, original.turnIndicator, original.mortgages, original.ownership, original.cash, original.houses, original.playerLocations, original.timesRolled, original.jailedPlayers, original.turnsInJail, original.gtfoJailCards, original.playerBankruptcy, original.remainingHouses, original.remainingHotels, original.chance, original.communityChest);
+        this(original.numPlayers, original.turnIndicator, original.mortgages, original.ownership, original.cash, original.houses, original.playerLocations, original.timesRolled, original.jailedPlayers, original.turnsInJail, original.gtfoJailCards, original.playerBankruptcy, original.auctionBids, original.biddingProperty, original.remainingHouses, original.remainingHotels, original.chance, original.communityChest);
     }
 
     /**
@@ -102,13 +107,23 @@ public class GameState {
 
     }
 
+    /**
+     * @return Maximum auction bid
+     */
+    public int getMaximumBid() {
+        int maxBid = 0;
+        for (int bid : auctionBids)
+            if (bid > maxBid) maxBid = bid;
+        return maxBid;
+    }
+
     @Override
     public boolean equals(Object object) {
 
         if (!(object instanceof GameState gs))
             return super.equals(object);
 
-        return (this.turnIndicator == gs.turnIndicator && Arrays.equals(this.mortgages, gs.mortgages) && Arrays.equals(this.ownership, gs.ownership) && Arrays.equals(this.cash, gs.cash) && Arrays.equals(this.houses, gs.houses) && Arrays.equals(this.playerLocations, gs.playerLocations) && Arrays.equals(this.timesRolled, gs.timesRolled) && Arrays.equals(this.jailedPlayers, gs.jailedPlayers) && Arrays.equals(this.gtfoJailCards, gs.gtfoJailCards) && Arrays.equals(this.playerBankruptcy, gs.playerBankruptcy) && this.chance.equals(gs.chance) && this.communityChest.equals(gs.communityChest));
+        return (this.turnIndicator == gs.turnIndicator && Arrays.equals(this.mortgages, gs.mortgages) && Arrays.equals(this.ownership, gs.ownership) && Arrays.equals(this.cash, gs.cash) && Arrays.equals(this.houses, gs.houses) && Arrays.equals(this.playerLocations, gs.playerLocations) && Arrays.equals(this.timesRolled, gs.timesRolled) && Arrays.equals(this.jailedPlayers, gs.jailedPlayers) && Arrays.equals(this.gtfoJailCards, gs.gtfoJailCards) && Arrays.equals(this.playerBankruptcy, gs.playerBankruptcy) && Arrays.equals(this.auctionBids, gs.auctionBids) && this.biddingProperty == gs.biddingProperty && this.chance.equals(gs.chance) && this.communityChest.equals(gs.communityChest));
 
     }
 

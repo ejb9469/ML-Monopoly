@@ -1,28 +1,41 @@
 package gfx;
 
+import gameobjects.*;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
-import gameobjects.GameState;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 
 import static gfx.MonopolyGraphicsFX.*;
-import static gameobjects.Monopoly.MAX_PLAYERS;
+import static main.Monopoly.MAX_PLAYERS;
+
+// TODO: Allow for creation of a MonopolyGroup, based on a previous instantiated MonopolyGroup;
+//          ... Stop creating a new one each time. (08-25-24)
 
 public class MonopolyGroup extends Group {
 
     public static final Font TEXT_FONT = new Font("Arial Bold", 11);
-    public static final Font MORTGAGE_TEXT_FONT = new Font("Helvetica", 11);
+    public static final Font MORTGAGE_TEXT_FONT = new Font("Arial Black", 11);  // formerly Helvetica
     public static final Font TOKEN_TEXT_FONT = new Font("Arial Bold", 16);
     public static final Font TURN_INDICATOR_FONT = new Font("Arial Bold", 36);
 
-    public static final double ADJUSTMENT_CONST = 10f;
+    public static final String BUTTON_COLOR_HEX = "#16222e";
     public static final String MORTGAGE_TEXT = "MTG";
+
+    public static final double ADJUSTMENT_CONST = 10f;
 
     private final List<Rectangle> rectangles = new ArrayList<>();
     private final Map<Rectangle, Rectangle[]> houseRectangles = new HashMap<>();  // Hotel rectangle will be at index 4
@@ -30,13 +43,16 @@ public class MonopolyGroup extends Group {
     private final Map<Rectangle, Rectangle> ownershipRectangles = new HashMap<>();
     private final Map<Rectangle, Text> mortgageTexts = new HashMap<>();
 
+    private final List<Button> buttons = new ArrayList<>();
+
     private final List<Text> playerCashTexts = new ArrayList<>();
     private final List<Text> turnIndicatorText = new ArrayList<>();
     private final List<Text> gtfoJailTexts = new ArrayList<>();
 
     private Map<Text, Rectangle> tokenPlacements = new HashMap<>();
 
-    public GameState currentGameState;
+    GameState currentGameState;
+    ActionState currentActionState;
 
     /**
      * Constructs a blank MonopolyGroup (a template).
@@ -45,17 +61,21 @@ public class MonopolyGroup extends Group {
         super();
         initialize();
         currentGameState = null;
+        currentActionState = null;
     }
 
     /**
      * Constructs a MonopolyGroup template, then uses it to express a Game.
      * @param gameState GameState to conform template to.
      */
-    public MonopolyGroup(GameState gameState) {
+    public MonopolyGroup(GameState gameState, ActionState actionState) {
         this();
         currentGameState = gameState;
-        conformToGameState(gameState);
+        currentActionState = actionState;
+        conformToGameState(gameState, actionState);
     }
+
+
 
     ///////////////////////////////////////////////////////////////////////////////
 
@@ -71,6 +91,7 @@ public class MonopolyGroup extends Group {
 
         List<Node[]> playerInfoOverlay = initializePlayerInfoOverlay(3.5f * WINDOW_DIM / 6f, 1.2f * WINDOW_DIM / 6f - (ADJUSTMENT_CONST*3), WINDOW_DIM / 6f);
         Text turnIndicatorText = initializeTurnIndicatorText(1.5f * WINDOW_DIM / 6f, 1.2f * WINDOW_DIM / 6f);
+        HBox buttonPanel = initializeButtonPanel(3f * WINDOW_DIM / 6f, 4.175f * WINDOW_DIM / 6f, 50);  // Buttons added to `this.buttons` in `initializeButtonPanel()`!
 
         this.turnIndicatorText.add(turnIndicatorText);
         // The below cast is safe because we know for a fact we're only dealing with Text objects.
@@ -80,6 +101,7 @@ public class MonopolyGroup extends Group {
         this.gtfoJailTexts.addAll(gtfoJailTexts);
 
         this.getChildren().add(turnIndicatorText);
+        this.getChildren().add(buttonPanel);
         this.getChildren().addAll(playerInfoOverlay.get(0));  // Background rectangle
         this.getChildren().addAll(playerInfoOverlay.get(1));  // Player-specific background rectangles
         this.getChildren().addAll(playerInfoOverlay.get(2));  // Player cash text indicators
@@ -198,7 +220,7 @@ public class MonopolyGroup extends Group {
     // ... but initialize() is called in all constructors.
     // TODO: Un-comment if statements, but store `currentGameState` somewhere down the callstack and pass it in here,
     //          rather than storing it as a field.
-    public void conformToGameState(GameState gameState) {
+    public void conformToGameState(GameState gameState, ActionState actionState) {
 
         // Tokens
         spawnTokens(gameState.playerLocations);
@@ -209,6 +231,8 @@ public class MonopolyGroup extends Group {
             this.getChildren().remove(turnIndicatorText.get(0));
 
             turnIndicatorText.get(0).setText("Turn: Player " + (gameState.turnIndicator + 1));
+            if (gameState.turnIndicator >= 0)
+                turnIndicatorText.get(0).setFill(PLAYER_SLOT_COLOR_MAP[gameState.turnIndicator]);
 
             this.getChildren().add(turnIndicatorText.get(0));
 
@@ -490,7 +514,176 @@ public class MonopolyGroup extends Group {
     }
 
     /**
-     * Child function of `conformToGame(GameState)` responsible for spawning player tokens at the Players' respective positions on the board.
+     * Child function of `initialize()` responsible for initializing the button panel.
+     * @return The HBox object (button panel) containing all button objects, separated into VBox columns.
+     */
+    private HBox initializeButtonPanel(double x, double y, double size) {
+
+        Button diceButton = new Button();
+        diceButton.setPrefWidth(size);
+        diceButton.setPrefHeight(size);
+        diceButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/dice.png");
+            ImageView diceImage = new ImageView(new Image(fileInputStream));
+            diceButton.setGraphic(diceImage);
+            fileInputStream.close();
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+            System.err.println("dice.png not found!");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.err.println("Error closing FileInputStream :: dice.png !!");
+        }
+        diceButton.setOnMousePressed(e-> {
+            GameObject context = new GameObject();
+            context.objInt = 1;
+            context.objBool = false;
+            context.objProperty = Board.SQUARES.get(0);  // GO
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.MOVE_THROW_DICE, context);
+        });
+
+        Button endButton = new Button();
+        //endButton.setFont(Font.font("Arial Bold", 8));
+        endButton.setPrefWidth(size);
+        endButton.setPrefHeight(size);
+        endButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/rightarrow.png");
+            ImageView arrowImage = new ImageView(new Image(fileInputStream));
+            endButton.setGraphic(arrowImage);
+            fileInputStream.close();
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+            System.err.println("rightarrow.png not found!");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.err.println("Error closing FileInputStream :: rightarrow.png !!");
+        }
+        endButton.setOnMousePressed(e-> {
+            GameObject context = new GameObject();
+            context.objInt = 1;
+            context.objBool = false;
+            context.objProperty = Board.SQUARES.get(0);  // GO
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.END_TURN, context);
+            System.out.println("End Button Pressed");
+        });
+
+        VBox col1 = new VBox(diceButton, endButton);
+        col1.setSpacing(ADJUSTMENT_CONST);
+
+        Button buyButton = new Button();
+        buyButton.setPrefWidth(size);
+        buyButton.setPrefHeight(size);
+        buyButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/moneybag.png");
+            ImageView moneyImage = new ImageView(new Image(fileInputStream));
+            buyButton.setGraphic(moneyImage);
+            fileInputStream.close();
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+            System.err.println("moneybag.png not found!");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.err.println("Error closing FileInputStream :: moneybag.png !!");
+        }
+        buyButton.setOnMousePressed(e-> {
+            GameObject context = new GameObject();
+            context.objInt = 1;
+            context.objBool = true;
+            context.objProperty = Board.SQUARES.get(currentGameState.playerLocations[currentGameState.turnIndicator]);
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.PROPERTY_BUY_OR_AUCTION, context);
+        });
+
+        Button gavelButton = new Button();
+        gavelButton.setPrefWidth(size);
+        gavelButton.setPrefHeight(size);
+        gavelButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/gavel.png");
+            ImageView gavelImage = new ImageView(new Image(fileInputStream));
+            gavelButton.setGraphic(gavelImage);
+            fileInputStream.close();
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+            System.err.println("gavel.png not found!");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.err.println("Error closing FileInputStream :: gavel.png !!");
+        }
+        gavelButton.setOnMousePressed(e-> {
+            GameObject context = new GameObject();
+            context.objInt = 1;
+            context.objBool = false;
+            context.objProperty = Board.SQUARES.get(currentGameState.playerLocations[currentGameState.turnIndicator]);
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.PROPERTY_BUY_OR_AUCTION, context);
+        });
+
+        VBox col2 = new VBox(buyButton, gavelButton);
+        col2.setSpacing(ADJUSTMENT_CONST);
+
+        Button bet10Button = new Button("BET\n 10");
+        bet10Button.setFont(new Font("Arial Black", 8));
+        bet10Button.setTextFill(Color.GREENYELLOW);
+        bet10Button.setPrefWidth(size);
+        bet10Button.setPrefHeight(size);
+        bet10Button.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        bet10Button.setOnMousePressed(e -> {
+            GameObject context = new GameObject();
+            context.objInt = currentGameState.getMaximumBid() + 10;
+            context.objBool = false;
+            context.objProperty = Board.SQUARES.get(currentGameState.biddingProperty);
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.AUCTION_BID, context);
+        });
+
+        Button bet100Button = new Button("BET\n100");
+        bet100Button.setFont(bet10Button.getFont());
+        bet100Button.setTextFill(Color.LIMEGREEN);
+        bet100Button.setPrefWidth(size);
+        bet100Button.setPrefHeight(size);
+        bet100Button.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        bet100Button.setOnMousePressed(e -> {
+            GameObject context = new GameObject();
+            context.objInt = currentGameState.getMaximumBid() + 100;
+            context.objBool = false;
+            context.objProperty = Board.SQUARES.get(currentGameState.biddingProperty);
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.AUCTION_BID, context);
+        });
+
+        Button concedeButton = new Button("BET\n  -1");
+        concedeButton.setFont(bet10Button.getFont());
+        concedeButton.setTextFill(Color.ORANGERED);
+        concedeButton.setPrefWidth(size);
+        concedeButton.setPrefHeight(size);
+        concedeButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        concedeButton.setOnMousePressed(e -> {
+            GameObject context = new GameObject();
+            context.objInt = -1;
+            context.objBool = false;
+            context.objProperty = Board.SQUARES.get(currentGameState.biddingProperty);
+            MonopolyGraphicsFX.actionState = new ActionState(GameAction.AUCTION_BID, context);
+        });
+
+        VBox col3 = new VBox(bet10Button, bet100Button, concedeButton);
+        col3.setSpacing(ADJUSTMENT_CONST);
+
+        HBox panel = new HBox(col1, col2, col3);
+        panel.setLayoutX(x);
+        panel.setLayoutY(y);
+        panel.setSpacing(ADJUSTMENT_CONST);
+
+        buttons.add(diceButton);
+        buttons.add(buyButton);
+        buttons.add(endButton);
+        buttons.add(gavelButton);
+
+        return panel;
+
+    }
+
+    /**
+     * Child function of `conformToGame(GameState, ActionState)` responsible for spawning player tokens at the Players' respective positions on the board.
      * @param playerLocations The GameState object's playerLocations[] array.
      */
     private void spawnTokens(int[] playerLocations) {

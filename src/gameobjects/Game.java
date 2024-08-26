@@ -1,7 +1,8 @@
 package gameobjects;
 
+import main.Monopoly;
 import playerobjects.Communicator;
-import playerobjects.DebugPipe;
+import playerobjects.DebugCommunicator;
 import playerobjects.Player;
 
 import java.util.*;
@@ -31,9 +32,6 @@ public class Game implements OutputsWarnings {
 
     private Set<GameAction> currentLegalActions = new HashSet<>();
 
-    private Property biddingProperty = null;
-    private List<Integer> auctionBids = null;
-
     private Trade currentTrade = null;
 
     private Dice lastDiceRoll = null;
@@ -50,7 +48,7 @@ public class Game implements OutputsWarnings {
      */
     public Game(int numPlayers, String[] names, Communicator communicator) {
         if (communicator == null)
-            communicator = new DebugPipe(this);
+            communicator = new DebugCommunicator(this);
 
         playerUUIDs = new UUID[numPlayers];
         Set<UUID> seenUUIDs = new HashSet<>();
@@ -317,7 +315,7 @@ public class Game implements OutputsWarnings {
             case AUCTION_BID -> {
 
                 // Perform check on ownership status
-                if (gameState.ownership[Board.SQUARES.indexOf(biddingProperty)] != -1)
+                if (gameState.ownership[gameState.biddingProperty] != -1)
                     break;
 
                 int bid = wrapper.objInt;
@@ -327,7 +325,7 @@ public class Game implements OutputsWarnings {
                     bid = -1;
 
                 // Replace old bid with new bid (or lack thereof)
-                auctionBids.set(keyIndex, bid);
+                gameState.auctionBids[keyIndex] = bid;
 
             }
             case HOUSE_BUILD -> {
@@ -924,10 +922,9 @@ public class Game implements OutputsWarnings {
     private void auctionProperty(int playerIndex, Property property) {
 
         // Initialize relevant fields
-        this.biddingProperty = property;
-        this.auctionBids = new ArrayList<>();
+        gameState.biddingProperty = Board.SQUARES.indexOf(property);
         for (int i = 0; i < gameState.numPlayers; i++)
-            auctionBids.add(STARTING_BID_AMOUNT);
+            gameState.auctionBids[i] = STARTING_BID_AMOUNT;
 
         // Auction procedure
         boolean multiplePlayersRemaining = true;
@@ -937,12 +934,12 @@ public class Game implements OutputsWarnings {
                 int pIndex = (playerIndex + i) % gameState.numPlayers;
 
                 // Skip turns of Players who've dropped out of the auction
-                if (auctionBids.get(pIndex) < 0) continue;
+                if (gameState.auctionBids[pIndex] < 0) continue;
 
                 // Check # of Players remaining in the auction.
                 // Exit the loop if only 1 Player remains.
                 int playersRemaining = gameState.numPlayers;
-                for (int bid : auctionBids) {
+                for (int bid : gameState.auctionBids) {
                     if (bid < 0)
                         playersRemaining--;
                 }
@@ -951,7 +948,7 @@ public class Game implements OutputsWarnings {
                     break;
                 }
 
-                int maxBid = Collections.max(auctionBids);
+                int maxBid = gameState.getMaximumBid();
 
                 // Signal Player for bid
                 String prompt = "What is your bid on " + property.getName() + "?" +
@@ -960,8 +957,8 @@ public class Game implements OutputsWarnings {
                 signalTurn(5, pIndex, prompt);
 
                 // Replace all invalid bids with -1
-                if (auctionBids.get(pIndex) < STARTING_BID_AMOUNT || auctionBids.get(pIndex) < maxBid)
-                    auctionBids.set(pIndex, -1);
+                if (gameState.auctionBids[pIndex] < STARTING_BID_AMOUNT || gameState.auctionBids[pIndex] < maxBid)
+                    gameState.auctionBids[pIndex] = -1;
 
             }
         }
@@ -969,8 +966,8 @@ public class Game implements OutputsWarnings {
         // Find the maximum bid and winning player
         int price = -1;  // Maximum bid amount
         int winner = 0;  // Index of the winning player
-        for (int i = 0; i < auctionBids.size(); i++) {
-            int bid = auctionBids.get(i);
+        for (int i = 0; i < gameState.auctionBids.length; i++) {
+            int bid = gameState.auctionBids[i];
             if (bid > -1 && bid > price) {
                 price = bid;
                 winner = i;
@@ -980,9 +977,9 @@ public class Game implements OutputsWarnings {
         // Call buyProperty() for auction winner, with the winning bid as the price
         buyProperty(winner, property, price);
 
-        // Null relevant fields
-        this.auctionBids = null;
-        this.biddingProperty = null;
+        // "Null" relevant fields
+        this.gameState.auctionBids = new int[gameState.auctionBids.length];
+        this.gameState.biddingProperty = 0;
 
     }
 
@@ -1264,7 +1261,7 @@ public class Game implements OutputsWarnings {
 
     /**
      * @return A *copy* of the Game State object.
-     * We turn a copy because GameState is highly mutable.
+     * We return a copy because GameState is highly mutable.
      */
     public GameState getGameState() {
         return new GameState(gameState);

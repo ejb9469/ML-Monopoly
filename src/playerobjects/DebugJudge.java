@@ -3,23 +3,27 @@ package playerobjects;
 import gameobjects.*;
 
 import java.util.LinkedHashMap;
-import java.util.Scanner;
 import java.util.Set;
 
-public class DebugDecider implements Decider {
+public class DebugJudge implements Judge {
 
-    private static final Scanner sc = new Scanner(System.in);
+    private final InPipe input;
 
-    public LinkedHashMap<GameAction, GameObject> decide(Set<GameAction> possibleActions, GameState gameState, Player playerObject, boolean canEndTurn) {
+    public DebugJudge(InPipe input) {
+        this.input = input;
+    }
 
-        System.out.println("Possible actions: \n" + printActionsSet(possibleActions));
+    @Override
+    public LinkedHashMap<GameAction, GameObject> decide(Set<GameAction> possibleActions, OutPipe outPipe, GameState gameState, boolean canEndTurn) {
+
+        outPipe.output("Possible actions: \n" + generateActionsSet(possibleActions));
         // All below try-catch blocks are to avoid stupid unchecked exceptions killing play tests
 
         GameAction action;
         try {
-            action = GameAction.valueOf(sc.nextLine().strip().toUpperCase());
+            action = GameAction.valueOf(input.queryString().strip().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            System.out.println("Invalid game action, defaulting to MOVE_THROW_DICE.");
+            outPipe.output("Invalid game action, defaulting to MOVE_THROW_DICE.");
             action = GameAction.MOVE_THROW_DICE;
         }
 
@@ -29,17 +33,17 @@ public class DebugDecider implements Decider {
 
             System.out.print("objInt: ");
             try {
-                wrapper.objInt = Integer.parseInt(sc.nextLine().strip());
+                wrapper.objInt = Integer.parseInt(input.queryString().strip());
             } catch (NumberFormatException ex) {
-                System.out.println("Invalid int, defaulting to -1.");
+                outPipe.output("Invalid int, defaulting to -1.");
                 wrapper.objInt = -1;
             }
 
             System.out.print("objBool: ");
-            wrapper.objBool = Boolean.parseBoolean(sc.nextLine().strip().toLowerCase());
+            wrapper.objBool = Boolean.parseBoolean(input.queryString().strip().toLowerCase());
 
             System.out.print("objProperty: ");
-            String objPropertyStr = sc.nextLine().strip().toLowerCase();
+            String objPropertyStr = input.queryString().strip().toLowerCase();
             boolean validProperty = false;
             for (Property property : Board.SQUARES) {
                 if (objPropertyStr.equals(property.getName().toLowerCase())) {
@@ -49,7 +53,7 @@ public class DebugDecider implements Decider {
                 }
             }
             if (!validProperty) {
-                System.out.println("Invalid Property name, defaulting to GO.");
+                outPipe.output("Invalid Property name, defaulting to GO.");
                 wrapper.objProperty = Board.SQUARES.get(0);  // GO
             }
 
@@ -58,7 +62,7 @@ public class DebugDecider implements Decider {
         } else {
 
             System.out.print("objTradeStr: ");
-            String objTradeStr = sc.nextLine().strip().toLowerCase();
+            String objTradeStr = input.queryString().strip().toLowerCase();
 
             Trade objTrade;
             try {
@@ -82,8 +86,12 @@ public class DebugDecider implements Decider {
         return out;
 
     }
+    
+    public void output(String content) {
+        
+    }
 
-    public static String printActionsSet(Set<GameAction> actions) {
+    public static String generateActionsSet(Set<GameAction> actions) {
         StringBuilder out = new StringBuilder();
         for (GameAction action : actions)
             out.append(action.name()).append("\n");

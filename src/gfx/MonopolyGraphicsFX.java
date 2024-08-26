@@ -1,5 +1,7 @@
 package gfx;
 
+import gameobjects.ActionState;
+import gameobjects.GameState;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -16,7 +18,7 @@ import java.util.TimerTask;
 
 public class MonopolyGraphicsFX extends Application {
 
-    public static final int FRAMES_PER_SECOND = 60;
+    public static final int FRAMES_PER_SECOND = 10;
 
     public static final int WINDOW_DIM = 1000;
 
@@ -107,7 +109,9 @@ public class MonopolyGraphicsFX extends Application {
             28  // Boardwalk
     };
 
-    private final Game game = new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null);  // TODO: Temporary!
+    private static final Game game = new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null);  // TODO: Temporary!
+
+    public static ActionState actionState = null;
 
     public static void main(String[] args) {
         //new MonopolyGraphicsFX(null).run(args);
@@ -145,13 +149,13 @@ public class MonopolyGraphicsFX extends Application {
     }
 
     private Scene generateScene() {
-        Scene scene = new Scene(new MonopolyGroup(game.getGameState()), WINDOW_DIM, WINDOW_DIM);
+        Scene scene = new Scene(new MonopolyGroup(game.getGameState(), actionState), WINDOW_DIM, WINDOW_DIM);
         try {
-            scene.setFill(new ImagePattern(new Image(new FileInputStream("src/gfx/monopoly.jpg"))));
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/monopoly.jpg");
+            scene.setFill(new ImagePattern(new Image(fileInputStream)));
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         }
-        //generateGroupFromGame(game);
         return scene;
     }
 
