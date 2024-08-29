@@ -18,6 +18,12 @@ public class ActionState {
         this.selectedContext = clone.selectedContext;
     }
 
+    public ActionState(GameAction selectedAction, GameObject selectedContext, Set<GameAction> possibleActions) {
+        this.selectedAction = selectedAction;
+        this.selectedContext = selectedContext;
+        this.possibleActions = possibleActions;
+    }
+
     public ActionState(GameAction selectedAction, GameObject selectedContext) {
         this();
         this.selectedAction = selectedAction;

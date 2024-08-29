@@ -4,6 +4,7 @@ import gameobjects.*;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -32,7 +33,7 @@ public class MonopolyGroup extends Group {
     public static final Font TOKEN_TEXT_FONT = new Font("Arial Bold", 16);
     public static final Font TURN_INDICATOR_FONT = new Font("Arial Bold", 36);
 
-    public static final String BUTTON_COLOR_HEX = "#16222e";
+    public static final String BUTTON_COLOR_HEX = "#5b5b5b";
     public static final String MORTGAGE_TEXT = "MTG";
 
     public static final double ADJUSTMENT_CONST = 10f;
@@ -519,12 +520,16 @@ public class MonopolyGroup extends Group {
      */
     private HBox initializeButtonPanel(double x, double y, double size) {
 
+        TextField propertyNameField = new TextField("<Enter Property Name>");
+        propertyNameField.setPrefHeight(2 * size / 3);
+        propertyNameField.setPrefWidth(size * 3);
+
         Button diceButton = new Button();
         diceButton.setPrefWidth(size);
         diceButton.setPrefHeight(size);
         diceButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
         try {
-            FileInputStream fileInputStream = new FileInputStream("src/gfx/dice.png");
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/dice.png");
             ImageView diceImage = new ImageView(new Image(fileInputStream));
             diceButton.setGraphic(diceImage);
             fileInputStream.close();
@@ -540,7 +545,10 @@ public class MonopolyGroup extends Group {
             context.objInt = 1;
             context.objBool = false;
             context.objProperty = Board.SQUARES.get(0);  // GO
-            MonopolyGraphicsFX.actionState = new ActionState(GameAction.MOVE_THROW_DICE, context);
+            if (currentGameState.jailedPlayers[currentGameState.turnIndicator])
+                MonopolyGraphicsFX.actionState = new ActionState(GameAction.JAIL_THROW_DICE, context);
+            else
+                MonopolyGraphicsFX.actionState = new ActionState(GameAction.MOVE_THROW_DICE, context);
         });
 
         Button endButton = new Button();
@@ -549,7 +557,7 @@ public class MonopolyGroup extends Group {
         endButton.setPrefHeight(size);
         endButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
         try {
-            FileInputStream fileInputStream = new FileInputStream("src/gfx/rightarrow.png");
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/rightarrow.png");
             ImageView arrowImage = new ImageView(new Image(fileInputStream));
             endButton.setGraphic(arrowImage);
             fileInputStream.close();
@@ -577,7 +585,7 @@ public class MonopolyGroup extends Group {
         buyButton.setPrefHeight(size);
         buyButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
         try {
-            FileInputStream fileInputStream = new FileInputStream("src/gfx/moneybag.png");
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/moneybag.png");
             ImageView moneyImage = new ImageView(new Image(fileInputStream));
             buyButton.setGraphic(moneyImage);
             fileInputStream.close();
@@ -601,7 +609,7 @@ public class MonopolyGroup extends Group {
         gavelButton.setPrefHeight(size);
         gavelButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
         try {
-            FileInputStream fileInputStream = new FileInputStream("src/gfx/gavel.png");
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/gavel.png");
             ImageView gavelImage = new ImageView(new Image(fileInputStream));
             gavelButton.setGraphic(gavelImage);
             fileInputStream.close();
@@ -624,7 +632,7 @@ public class MonopolyGroup extends Group {
         col2.setSpacing(ADJUSTMENT_CONST);
 
         Button bet10Button = new Button("BET\n 10");
-        bet10Button.setFont(new Font("Arial Black", 8));
+        bet10Button.setFont(new Font("Arial Bold", 9));
         bet10Button.setTextFill(Color.GREENYELLOW);
         bet10Button.setPrefWidth(size);
         bet10Button.setPrefHeight(size);
@@ -639,7 +647,7 @@ public class MonopolyGroup extends Group {
 
         Button bet100Button = new Button("BET\n100");
         bet100Button.setFont(bet10Button.getFont());
-        bet100Button.setTextFill(Color.LIMEGREEN);
+        bet100Button.setTextFill(Color.GREENYELLOW);
         bet100Button.setPrefWidth(size);
         bet100Button.setPrefHeight(size);
         bet100Button.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
@@ -651,9 +659,9 @@ public class MonopolyGroup extends Group {
             MonopolyGraphicsFX.actionState = new ActionState(GameAction.AUCTION_BID, context);
         });
 
-        Button concedeButton = new Button("BET\n  -1");
+        Button concedeButton = new Button("DROP\n OUT");
         concedeButton.setFont(bet10Button.getFont());
-        concedeButton.setTextFill(Color.ORANGERED);
+        concedeButton.setTextFill(Color.LIGHTPINK);
         concedeButton.setPrefWidth(size);
         concedeButton.setPrefHeight(size);
         concedeButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
@@ -668,7 +676,66 @@ public class MonopolyGroup extends Group {
         VBox col3 = new VBox(bet10Button, bet100Button, concedeButton);
         col3.setSpacing(ADJUSTMENT_CONST);
 
-        HBox panel = new HBox(col1, col2, col3);
+        Button mortgageButton = new Button();
+        mortgageButton.setPrefWidth(size);
+        mortgageButton.setPrefHeight(size);
+        mortgageButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/mortgage.png");
+            ImageView mortgageImage = new ImageView(new Image(fileInputStream));
+            mortgageButton.setGraphic(mortgageImage);
+            fileInputStream.close();
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+            System.err.println("mortgage.png not found!");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.err.println("Error closing FileInputStream :: mortgage.png !!");
+        }
+        mortgageButton.setOnMousePressed(e -> {
+            GameObject context = new GameObject();
+            context.objInt = -1;
+            context.objBool = true;
+            if (MonopolyGraphicsFX.selectedProperty != null) {
+                context.objProperty = MonopolyGraphicsFX.selectedProperty;
+                MonopolyGraphicsFX.actionState = new ActionState(GameAction.PROPERTY_MORTGAGE, context);
+            } else {
+                System.err.println("No property selected to mortgage!");
+            }
+        });
+
+        Button unmortgageButton = new Button();
+        unmortgageButton.setPrefWidth(size);
+        unmortgageButton.setPrefHeight(size);
+        unmortgageButton.setStyle(String.format("-fx-background-color: %s;", BUTTON_COLOR_HEX));
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/unmortgage.png");
+            ImageView unmortgageImage = new ImageView(new Image(fileInputStream));
+            unmortgageButton.setGraphic(unmortgageImage);
+            fileInputStream.close();
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+            System.err.println("unmortgage.png not found!");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.err.println("Error closing FileInputStream :: unmortgage.png !!");
+        }
+        unmortgageButton.setOnMousePressed(e -> {
+            GameObject context = new GameObject();
+            context.objInt = -1;
+            context.objBool = true;
+            if (MonopolyGraphicsFX.selectedProperty != null) {
+                context.objProperty = MonopolyGraphicsFX.selectedProperty;
+                MonopolyGraphicsFX.actionState = new ActionState(GameAction.PROPERTY_UNMORTGAGE, context);
+            } else {
+                System.err.println("No property selected to unmortgage!");
+            }
+        });
+
+        VBox col4 = new VBox(mortgageButton, unmortgageButton);
+        col4.setSpacing(ADJUSTMENT_CONST);
+
+        HBox panel = new HBox(col1, col2, col3, col4);
         panel.setLayoutX(x);
         panel.setLayoutY(y);
         panel.setSpacing(ADJUSTMENT_CONST);
@@ -677,6 +744,11 @@ public class MonopolyGroup extends Group {
         buttons.add(buyButton);
         buttons.add(endButton);
         buttons.add(gavelButton);
+        buttons.add(bet10Button);
+        buttons.add(bet100Button);
+        buttons.add(concedeButton);
+        buttons.add(mortgageButton);
+        buttons.add(unmortgageButton);
 
         return panel;
 

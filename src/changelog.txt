@@ -1,0 +1,9 @@
+VERSION 2.0.1
+
+
+    - Placed graphical assets (atm just .png images) into new subfolder 'gfx.assets/*'
+
+    - Changed `Judge.decide()` to use ActionState instead of LinkedHashMap<GameAction, GameObject>
+
+    - `MonopolyGraphicsFX`: New static member, `selectedProperty` (to avoid the need to use a JavaFX TextField)
+    - Added unmortgage and mortgage buttons

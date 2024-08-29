@@ -2,6 +2,7 @@ package gfx;
 
 import gameobjects.ActionState;
 import gameobjects.GameState;
+import gameobjects.Property;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -111,7 +112,9 @@ public class MonopolyGraphicsFX extends Application {
 
     private static final Game game = new Game(4, new String[]{"Car", "Thimble", "Ship", "Dog"}, null);  // TODO: Temporary!
 
-    public static ActionState actionState = null;
+    // Package private -- for graphics handling only
+    static ActionState actionState = null;
+    static Property selectedProperty = null;
 
     public static void main(String[] args) {
         //new MonopolyGraphicsFX(null).run(args);
@@ -151,7 +154,7 @@ public class MonopolyGraphicsFX extends Application {
     private Scene generateScene() {
         Scene scene = new Scene(new MonopolyGroup(game.getGameState(), actionState), WINDOW_DIM, WINDOW_DIM);
         try {
-            FileInputStream fileInputStream = new FileInputStream("src/gfx/monopoly.jpg");
+            FileInputStream fileInputStream = new FileInputStream("src/gfx/assets/monopoly.jpg");
             scene.setFill(new ImagePattern(new Image(fileInputStream)));
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();

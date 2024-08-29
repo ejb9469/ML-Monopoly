@@ -1,7 +1,8 @@
-package playerobjects;
+package gfx;
 
 import gameobjects.ActionState;
-import gfx.MonopolyGraphicsFX;
+import playerobjects.InPipe;
+import playerobjects.ScannerInPipe;
 
 public class GFXInPipe implements InPipe {
 
@@ -16,7 +17,7 @@ public class GFXInPipe implements InPipe {
     }
 
     public String queryString() {
-        return null;  // Bad polymorphism, but queryString() is useless in GFXInPipe
+        return new ScannerInPipe().queryString();  // Bad polymorphism, but queryString() is useless for GFXInPipe
     }
 
     public void close() {}

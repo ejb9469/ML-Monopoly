@@ -20,7 +20,7 @@ package playerobjects;
 
 
 import gameobjects.*;
-import gfx.MonopolyGraphicsFX;
+import gfx.GFXJudge;
 
 import java.util.*;
 
@@ -73,9 +73,9 @@ public class Player implements OutputsWarnings {
         // Black-box decision-making
         // Also, ugly stinky extraction process
         boolean canEndTurn = legalActions.contains(GameAction.END_TURN);
-        LinkedHashMap<GameAction, GameObject> actionMap = judge.decide(legalActions, output, gameStateCopy, canEndTurn);
-        GameAction decidedAction = actionMap.keySet().stream().findFirst().get();
-        GameObject wrapper = actionMap.get(decidedAction);
+        ActionState actionMap = judge.decide(legalActions, output, gameStateCopy, canEndTurn);
+        GameAction decidedAction = actionMap.selectedAction;
+        GameObject wrapper = actionMap.selectedContext;
 
         // async param use case..?
         takeTurn(new GameAction[]{decidedAction}, new GameObject[]{wrapper}, false);

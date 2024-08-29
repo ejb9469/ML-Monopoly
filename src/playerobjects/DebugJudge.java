@@ -2,7 +2,6 @@ package playerobjects;
 
 import gameobjects.*;
 
-import java.util.LinkedHashMap;
 import java.util.Set;
 
 public class DebugJudge implements Judge {
@@ -14,7 +13,9 @@ public class DebugJudge implements Judge {
     }
 
     @Override
-    public LinkedHashMap<GameAction, GameObject> decide(Set<GameAction> possibleActions, OutPipe outPipe, GameState gameState, boolean canEndTurn) {
+    public ActionState decide(Set<GameAction> possibleActions, OutPipe outPipe, GameState gameState, boolean canEndTurn) {
+
+        // TODO: Delegate (most of) this functionality to `ScannerInPipe`
 
         outPipe.output("Possible actions: \n" + generateActionsSet(possibleActions));
         // All below try-catch blocks are to avoid stupid unchecked exceptions killing play tests
@@ -80,15 +81,8 @@ public class DebugJudge implements Judge {
 
         }
 
-        LinkedHashMap<GameAction, GameObject> out = new LinkedHashMap<>();
-        out.put(action, wrapper);
+        return new ActionState(action, wrapper);
 
-        return out;
-
-    }
-    
-    public void output(String content) {
-        
     }
 
     public static String generateActionsSet(Set<GameAction> actions) {
